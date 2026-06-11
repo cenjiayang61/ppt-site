@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -163,8 +166,37 @@
       <span><strong class="count" id="ppt-count">0</strong> 个页面</span>
     </div>
 
-    <section class="grid" id="ppt-list" aria-label="PPT 列表">
-      <div class="status">正在读取 PPT 列表...</div>
+    <section class="grid" aria-label="PPT 列表">
+      {% assign ppt_count = 0 %}
+      {% for file in site.static_files %}
+        {% if file.path contains '/ppts/' and file.extname == '.html' %}
+          {% assign ppt_count = ppt_count | plus: 1 %}
+          {% assign parts = file.path | split: '/' %}
+          {% assign reverse_parts = parts | reverse %}
+          {% if file.name == 'index.html' %}
+            {% assign raw_title = reverse_parts[1] %}
+            {% assign href = file.path | remove: 'index.html' | relative_url %}
+            {% assign tag = 'Folder' %}
+            {% assign desc = '包含 index.html 和资源文件的完整网页 PPT。' %}
+          {% else %}
+            {% assign raw_title = file.basename %}
+            {% assign href = file.path | relative_url %}
+            {% assign tag = 'HTML' %}
+            {% assign desc = '单文件 HTML 网页 PPT。' %}
+          {% endif %}
+          {% assign title = raw_title | replace: '_HTML项目', '' | replace: '-', ' ' | replace: '_', ' ' %}
+
+          <a class="card" href="{{ href }}">
+            <span class="tag">{{ tag }}</span>
+            <h2>{{ title }}</h2>
+            <p>{{ desc }}</p>
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if ppt_count == 0 %}
+        <div class="status">还没有上传 PPT。把 HTML 或 PPT 文件夹放进 ppts/ 后，这里会自动出现。</div>
+      {% endif %}
     </section>
   </main>
 
@@ -173,64 +205,7 @@
   </footer>
 
   <script>
-    const repo = "cenjiayang61/ppt-site";
-    const branch = "main";
-    const apiUrl = `https://api.github.com/repos/${repo}/contents/ppts?ref=${branch}`;
-    const list = document.getElementById("ppt-list");
-    const count = document.getElementById("ppt-count");
-
-    function titleFromName(name) {
-      return decodeURIComponent(name)
-        .replace(/\.html$/i, "")
-        .replace(/_HTML项目$/i, "")
-        .replace(/[-_]+/g, " ")
-        .trim();
-    }
-
-    function hrefFromPath(path, type) {
-      const encoded = path.split("/").map(encodeURIComponent).join("/");
-      return type === "dir" ? `${encoded}/` : encoded;
-    }
-
-    function render(items) {
-      const ppts = items
-        .filter((item) => item.type === "dir" || /\.html$/i.test(item.name))
-        .sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
-
-      count.textContent = String(ppts.length);
-
-      if (!ppts.length) {
-        list.innerHTML = '<div class="status">还没有上传 PPT。把 HTML 或 PPT 文件夹放进 ppts/ 后，这里会自动出现。</div>';
-        return;
-      }
-
-      list.innerHTML = ppts.map((item) => {
-        const title = titleFromName(item.name);
-        const href = hrefFromPath(item.path, item.type);
-        const tag = item.type === "dir" ? "Folder" : "HTML";
-        const desc = item.type === "dir"
-          ? "包含 index.html 和资源文件的完整网页 PPT。"
-          : "单文件 HTML 网页 PPT。";
-
-        return `
-          <a class="card" href="${href}">
-            <span class="tag">${tag}</span>
-            <h2>${title}</h2>
-            <p>${desc}</p>
-          </a>
-        `;
-      }).join("");
-    }
-
-    fetch(apiUrl, { headers: { "Accept": "application/vnd.github+json" } })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
-      .then(render)
-      .catch(() => {
-        list.innerHTML = '<div class="status">暂时无法读取列表。请稍后刷新，或直接访问 ppts 文件夹里的 PPT 链接。</div>';
-      });
+    document.getElementById("ppt-count").textContent = String(document.querySelectorAll(".card").length);
   </script>
 </body>
 </html>
