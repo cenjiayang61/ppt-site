@@ -1,0 +1,52 @@
+﻿{
+    "summary":  {
+                    "dest":  "C:\\Users\\Administrator\\Desktop\\chushishan-brand-profile-upload",
+                    "total_mb":  14.19,
+                    "file_count":  35,
+                    "image_count":  31,
+                    "updated_note":  "Updated page 12 market proof wall with 8 images and page 13 ranking strategy copy.",
+                    "updated_at":  "2026-06-15 15:16:00"
+                },
+    "largest":  [
+                    {
+                        "size_mb":  1.25,
+                        "Name":  "20-social-proof-06.jpg"
+                    },
+                    {
+                        "size_mb":  1.12,
+                        "Name":  "20-social-proof-08.jpg"
+                    },
+                    {
+                        "size_mb":  1.1,
+                        "Name":  "20-social-proof-07.jpg"
+                    },
+                    {
+                        "size_mb":  0.9,
+                        "Name":  "20-social-proof-02.jpg"
+                    },
+                    {
+                        "size_mb":  0.74,
+                        "Name":  "20-social-proof-01.jpg"
+                    },
+                    {
+                        "size_mb":  0.6,
+                        "Name":  "20-social-proof-05.jpg"
+                    },
+                    {
+                        "size_mb":  0.57,
+                        "Name":  "18-texture-wood.jpg"
+                    },
+                    {
+                        "size_mb":  0.55,
+                        "Name":  "06-atmosphere-market.jpg"
+                    },
+                    {
+                        "size_mb":  0.54,
+                        "Name":  "03-mountain-mood.jpg"
+                    },
+                    {
+                        "size_mb":  0.42,
+                        "Name":  "11-passion-sour-beef.jpg"
+                    }
+                ]
+}
