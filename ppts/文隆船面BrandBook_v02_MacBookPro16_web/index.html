@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文隆船面BrandBook_v02 · MacBook Pro 16</title>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const isStage = params.get('deckStage') === '1';
+  const useFitShell = !isStage && params.get('fit') === '16x9';
+  window.__deckFitShell = useFitShell;
+  window.__exportSlide = Math.max(0, (parseInt(params.get('slide') || '1', 10) || 1) - 1);
+  if (useFitShell) document.documentElement.classList.add('fit-shell');
+  if (params.get('export') === '1') document.documentElement.classList.add('export-clean');
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色(默认:🖋 墨水经典) ============
+       切换主题:从 references/themes.md 复制对应的 :root 块
+       整体替换这几行(--ink / --ink-rgb / --paper / --paper-rgb)
+       其他地方散落的 rgba() 都走 var(--ink-rgb) / var(--paper-rgb),无需逐处改 */
+    --ink:#1f1a14;
+    --ink-rgb:31,26,20;
+    --paper:#f0e6d2;
+    --paper-rgb:240,230,210;
+    --paper-tint:#e3d7bf;
+    --ink-tint:#2d2620;
+
+    /* ============ 字体(跨主题固定) ============ */
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --serif-en:"Playfair Display","Source Serif 4",Georgia,serif;
+    --serif-body-en:"Source Serif 4",Georgia,serif;
+    --serif-zh:"Noto Serif SC",source-han-serif-sc,serif;
+    --sans-zh:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  html.fit-shell,html.fit-shell body{background:var(--ink-tint)}
+  html.fit-shell body>*:not(#stage-frame){display:none!important}
+  #stage-frame{position:fixed;left:50%;top:50%;width:min(100vw,177.77777778vh);height:min(100vh,56.25vw);transform:translate(-50%,-50%);border:0;background:var(--paper);box-shadow:0 0 0 1px rgba(var(--paper-rgb),.14),0 22px 70px rgba(0,0,0,.28);z-index:9999}
+  html.export-clean #nav,html.export-clean #hint{display:none!important}
+  html.export-clean #deck{transition:none!important}
+  html.export-clean [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ============ WebGL 双背景 ============ */
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}
+  canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}
+  body.light-bg canvas#bg-dark{opacity:0}
+  body.low-power canvas.bg{display:none!important}
+
+  /* ============ Deck 容器 + 翻页 ============ */
+  /* width: NSLIDES * 100vw，会在 JS 里动态矫正 */
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink);background:var(--paper)}
+  .slide.dark{color:var(--paper);background:var(--ink)}
+
+  /* 默认页：遮罩较厚，保证文字可读 */
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  /* Hero 页：遮罩大幅降低，让 WebGL 背景明显透出 */
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  /* Hero 页顶底微弱渐隐，保证 chrome/foot 区域可读 */
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+
+  /* ============ Magazine chrome：顶部 meta + 底部 foot ============ */
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+  .chrome .left,.chrome .right{display:flex;gap:2.4em;align-items:center}
+  .chrome .sep{width:40px;height:1px;background:currentColor;opacity:.4}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .foot .title{font-family:var(--serif-zh);font-weight:400;letter-spacing:.05em;text-transform:none;opacity:.75;font-size:13px}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:6px 14px;border:1px solid currentColor;opacity:.85}
+  .rule{width:100%;height:1px;background:currentColor;opacity:.25;margin:3vh 0}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  /* ============ 字体规则 ============
+     · 衬线（Noto Serif SC / Playfair）：大标题、重点金句、数字
+     · 非衬线（Noto Sans SC）：正文描述、body、补充说明
+     · 等宽（IBM Plex Mono）：kicker、meta 小标签、foot 右侧
+  */
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .display{font-family:var(--serif-en);font-weight:700;font-size:11vw;line-height:.92;letter-spacing:-.025em}
+  .display-zh{font-family:var(--serif-zh);font-weight:700;font-size:7.8vw;line-height:1.04;letter-spacing:-.005em}
+  .h1-zh{font-family:var(--serif-zh);font-weight:700;font-size:4.6vw;line-height:1.12;letter-spacing:-.005em}
+  .h2-zh{font-family:var(--serif-zh);font-weight:600;font-size:3.2vw;line-height:1.2;letter-spacing:0}
+  .h3-zh{font-family:var(--serif-zh);font-weight:500;font-size:1.9vw;line-height:1.35}
+  .body-zh{font-family:var(--sans-zh);font-weight:400;font-size:max(15px,1.22vw);line-height:1.75;opacity:.82;letter-spacing:.01em}
+  .body-serif{font-family:var(--serif-zh);font-weight:400;font-size:max(15px,1.3vw);line-height:1.65;opacity:.88}
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.9vw;line-height:1.4;opacity:.85}
+  .meta{font-family:var(--mono);font-size:max(11px,.88vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .big-num{font-family:var(--serif-en);font-weight:800;font-size:10vw;line-height:.85;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .mid-num{font-family:var(--serif-en);font-weight:700;font-size:5.5vw;line-height:.88;letter-spacing:-.02em;font-feature-settings:"tnum"}
+  .ghost{font-family:var(--serif-en);font-weight:900;font-size:34vw;line-height:.8;opacity:.06;letter-spacing:-.04em;position:absolute;font-feature-settings:"tnum"}
+  em{font-style:italic;font-family:var(--serif-en)}
+  .en{font-family:var(--serif-en);font-style:italic;font-weight:500}
+
+  /* ============ 布局工具 ============ */
+  .col{display:flex;flex-direction:column;gap:2.4vh}
+  .row{display:flex;align-items:center;gap:3vw}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4vw 6vw;flex:1;align-content:center;padding:2vh 0}
+  .grid-9{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3vh 4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;flex:1;align-items:center}
+  .split-55{display:grid;grid-template-columns:55fr 45fr;gap:5vw;flex:1;align-items:stretch}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .bottom-left{position:absolute;left:6vw;bottom:9vh;max-width:50vw}
+  .bottom-right{position:absolute;right:6vw;bottom:9vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:6vw;top:6vh;text-align:right}
+
+  /* ============ Stat（数字矩阵） ============ */
+  .stat{display:flex;flex-direction:column;gap:1vh;align-items:flex-start}
+  .stat .n{font-family:var(--serif-en);font-weight:800;font-size:8vw;line-height:.88;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .stat .l{font-family:var(--sans-zh);font-size:max(13px,1.05vw);opacity:.7;margin-top:1vh;font-weight:400;line-height:1.5}
+  .stat .m{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;margin-bottom:.2vh}
+
+  /* ============ Callout（引用框） ============ */
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}
+  .slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout .cite{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .callout .q-big{font-family:var(--serif-zh);font-weight:600;font-size:max(17px,1.6vw);line-height:1.42}
+
+  /* ============ Platform（平台卡） ============ */
+  .plat{display:flex;flex-direction:column;justify-content:flex-end;padding:2vh 0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .plat .name{font-family:var(--serif-zh);font-weight:700;font-size:1.8vw;margin-bottom:.6vh}
+  .plat .nb{font-family:var(--serif-en);font-weight:700;font-size:3.2vw;letter-spacing:-.02em;line-height:1;font-feature-settings:"tnum"}
+  .plat .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-top:.6vh}
+  .plat .fill{font-family:var(--sans-zh);font-weight:300;font-size:2.4vw;opacity:.28;letter-spacing:-.01em;line-height:1}
+
+  /* ============ Rowline（表格行） ============ */
+  .rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:2vw;padding:2.2vh 0;border-top:1px solid currentColor;align-items:center;border-color:rgba(127,127,127,.25)}
+  .rowline:last-child{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.25)}
+  .rowline .k{font-family:var(--serif-zh);font-weight:700;font-size:1.7vw}
+  .rowline .v{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.2vw);opacity:.85;line-height:1.55}
+  .rowline .m{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;justify-self:end}
+
+  /* ============ Pillar（支柱卡片） ============ */
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+
+  /* ============ Signature / Highlight ============ */
+  .sign{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:2vw;opacity:.7}
+  .hi{position:relative;display:inline}
+  .slide.dark .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--paper-rgb),.15);z-index:-1}
+  .slide.light .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--ink-rgb),.08);z-index:-1}
+
+  /* ============ Icons（Lucide via CDN） ============ */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+  .ico-lg{width:2.6vw;height:2.6vw;stroke-width:1.2;display:inline-block}
+  .ico-md{width:1.8vw;height:1.8vw;stroke-width:1.3;display:inline-block;vertical-align:-.4em}
+  .ico-sm{width:1.1vw;height:1.1vw;stroke-width:1.4;display:inline-block;vertical-align:-.15em;opacity:.7}
+
+  /* ============ 图片占位（虚线框，提示设计师位置） ============ */
+  .img-slot{border:1.5px dashed rgba(127,127,127,.4);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1vh;padding:2vh 2vw;font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;opacity:.55;position:relative;aspect-ratio:16/9;width:100%;max-height:56vh;margin-inline:auto;box-sizing:border-box}
+  .img-slot::before{content:"";position:absolute;inset:8px;border:1px solid currentColor;opacity:.2}
+  .img-slot .plus{font-size:2vw;font-weight:300;opacity:.5;letter-spacing:0}
+  .img-slot .label{position:relative;z-index:2;text-align:center}
+  .img-slot.r-4x3{aspect-ratio:4/3}
+  .img-slot.r-3x2{aspect-ratio:3/2}
+  .img-slot.r-1x1{aspect-ratio:1/1}
+
+  /* ============ 图片实填框 ============
+     默认使用 contain: 保留原图比例，完整显示图片内容。
+     如个别图片需要杂志式铺满裁切，再给容器加 fit-cover。
+  */
+  .frame-img{overflow:hidden;position:relative;background:rgba(0,0,0,.04);box-sizing:border-box;width:100%;border-radius:4px}
+  .slide.dark .frame-img{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+  .frame-img > img{width:100%;height:100%;object-fit:contain;object-position:center center;display:block}
+  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
+  .frame-img.fit-cover > img{object-fit:cover;object-position:center center}
+  .frame-img.frame-clear{background:transparent!important;border-color:transparent!important}
+  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
+  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
+  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
+  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
+  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
+  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
+  .frame-img.h-16{height:16vh}
+  .frame-img.h-18{height:18vh}
+  .frame-img.h-22{height:22vh}
+  .frame-img.h-26{height:26vh}
+  .frame-img.h-28{height:28vh}
+  .frame-cap{display:flex;justify-content:space-between;align-items:baseline;gap:1vw;margin-top:.8vh;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.72}
+  .frame-cap .pf{font-family:var(--serif-zh);font-weight:600;font-size:max(13px,1vw);letter-spacing:.04em;text-transform:none;opacity:.94}
+  .frame-cap .nb{font-family:var(--serif-en);font-style:italic;font-size:max(15px,1.2vw);letter-spacing:.02em;text-transform:none;opacity:.88}
+  .frame-cap .idx{font-family:var(--mono);opacity:.5}
+  figure.tile{display:flex;flex-direction:column;margin:0;min-width:0}
+  figure.tile > .frame-img{flex:0 0 auto}
+  .frame.atmosphere-layout{display:grid!important;grid-template-columns:32fr 68fr;gap:4vw;align-items:center;min-height:0}
+  .atmosphere-copy{align-self:center}
+  .atmosphere-copy .h1-zh{font-size:5.4vw}
+  .atmosphere-copy .body-zh{max-width:26vw;margin-top:3vh}
+  .atmosphere-mosaic{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:0;align-self:center;height:70vh;width:100%;overflow:hidden}
+  .atmosphere-mosaic .tile{display:block;height:100%;overflow:hidden}
+  .atmosphere-mosaic .frame-img{height:100%!important;background:transparent!important;border-radius:0}
+  .atmosphere-mosaic .frame-img > img{object-fit:cover;object-position:center center}
+  .atmosphere-mosaic .img-cap{display:none}
+  .material-mood-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;margin:4vh auto 0;width:94%;align-items:start}
+  .material-mood-grid .frame-img{aspect-ratio:1/1;height:auto;background:transparent!important}
+  .material-mood-grid .frame-img > img{object-fit:cover;object-position:center center}
+  .cultural-large-photo{height:68vh;max-height:none!important;width:100%;justify-self:center;align-self:center;margin:0 auto;background:transparent!important}
+  .suggestion-board{gap:3vh 2vw!important;width:88%;justify-self:end}
+  .suggestion-board .frame-img{aspect-ratio:1/1;height:auto;background:transparent!important}
+  .suggestion-board .frame-img > img{object-fit:cover;object-position:center center}
+  .suggestion-board .img-cap{margin-top:.6vh;font-size:max(9px,.72vw)}
+
+  /* ============ 导航 ============ */
+  #nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+  #nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+  #nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+  body.light-bg #nav{background:rgba(255,255,255,.25)}
+  body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}
+  body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}
+  #hint{position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa}
+  body.low-power #hint{opacity:.72;color:var(--paper);mix-blend-mode:normal}
+  body.light-bg.low-power #hint{color:var(--ink)}
+
+  /* ============================================================
+     ============ LAYOUTS API · 面向 agent 的类（v2）============
+     所有 layouts.md 中的骨架都基于下面这套命名。
+     如果你在 layouts.md 里看到某个类，它必须在下面有定义。
+     ============================================================ */
+
+  /* ---------- .frame：每页主内容容器 ---------- */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  /* 当 .frame 同时加了 grid 类时，grid 的 display:grid 覆盖 flex */
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-3-3,
+  .frame.grid-6{display:grid}
+
+  /* ---------- 标题层级（API 名称，衬线为主） ---------- */
+  .h-hero{
+    font-family:var(--serif-zh);
+    font-weight:900;
+    font-size:10vw;
+    line-height:.96;
+    letter-spacing:-.02em;
+  }
+  .h-xl{
+    font-family:var(--serif-zh);
+    font-weight:700;
+    font-size:6.2vw;
+    line-height:1.08;
+    letter-spacing:-.01em;
+  }
+  .h-sub{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:3.1vw;
+    line-height:1.25;
+    letter-spacing:0;
+    opacity:.7;
+  }
+  .h-md{
+    font-family:var(--serif-zh);
+    font-weight:600;
+    font-size:2.3vw;
+    line-height:1.3;
+  }
+  /* 英文标题专用（Playfair 衬线） */
+  .h-hero-en,.h-xl-en{font-family:var(--serif-en);letter-spacing:-.025em}
+
+  /* ---------- lead 引语 ---------- */
+  .lead{
+    font-family:var(--serif-zh);
+    font-weight:400;
+    font-size:1.75vw;
+    line-height:1.5;
+    opacity:.86;
+  }
+
+  /* ---------- meta-row 底部元数据 ---------- */
+  .meta-row{
+    display:flex;
+    gap:1.2em;
+    align-items:baseline;
+    flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:max(12px,.92vw);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- stat-card（数据大字报用） ---------- */
+  .stat-card{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    align-items:flex-start;
+    padding-top:1.6vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.3);
+  }
+  .stat-card .stat-label{
+    font-family:var(--mono);
+    font-size:max(10px,.78vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
+  .stat-card .stat-nb{
+    font-family:var(--serif-en);
+    font-weight:800;
+    font-size:5.8vw;
+    line-height:.9;
+    letter-spacing:-.03em;
+    font-feature-settings:"tnum";
+    margin-top:.4vh;
+  }
+  .stat-card .stat-nb .stat-unit{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:.38em;
+    letter-spacing:0;
+    opacity:.72;
+    margin-left:.14em;
+  }
+  .stat-card .stat-note{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(13px,1.05vw);
+    line-height:1.5;
+    opacity:.72;
+    margin-top:.6vh;
+  }
+  /* 当 stat-card 用于 grid-4（2x2），数字适度放大；若页面有标题+引文在上方，可内联 style 覆盖为更小值 */
+  .grid-4 .stat-card .stat-nb{font-size:5vw}
+  /* 当只有 3 个，字也可以稍大 */
+  .grid-3 .stat-card .stat-nb{font-size:6.8vw}
+
+  /* ---------- pipeline（流水线） ---------- */
+  .pipeline-section{
+    margin-top:4.4vh;
+    padding-top:2.8vh;
+    border-top:1px dashed rgba(127,127,127,.32);
+  }
+  .pipeline-section:first-of-type{
+    border-top:0;
+    padding-top:0;
+    margin-top:3vh;
+  }
+  .pipeline-label{
+    font-family:var(--mono);
+    font-size:max(11px,.85vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.62;
+    margin-bottom:2.2vh;
+  }
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1.2vw;
+  }
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .step{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    padding-top:1.4vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.35);
+  }
+  .step-nb{
+    font-family:var(--serif-en);
+    font-style:italic;
+    font-weight:500;
+    font-size:1.15vw;
+    opacity:.45;
+  }
+  .step-title{
+    font-family:var(--sans-zh);
+    font-weight:700;
+    font-size:1.55vw;
+    letter-spacing:.01em;
+    line-height:1.2;
+  }
+  .step-desc{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(12px,.95vw);
+    line-height:1.45;
+    opacity:.72;
+  }
+
+  /* ---------- 网格（layouts.md 所用） ---------- */
+  /* 这些类独立挂到任何容器上都能生效，不依赖 .frame 复合选择器 */
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-auto-rows:minmax(0,1fr);
+    gap:2.4vh 2vw;
+  }
+  /* grid-6 已在旧样式里定义为 3x2，这里仅补 align */
+
+  /* ---------- 图片 frame-img（layouts.md 主命名） ---------- */
+  /* 在旧样式里已定义，这里补 img-cap 命名别名与增强 */
+  figure.frame-img{margin:0;display:flex;flex-direction:column;min-width:0}
+  .img-cap{
+    display:block;
+    margin-top:.8vh;
+    font-family:var(--mono);
+    font-size:max(10px,.8vw);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+  /* callout src 命名别名 */
+  .callout-src{
+    display:block;
+    margin-top:1.6vh;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- chrome & foot 补位（layouts.md 简单写法） ---------- */
+  .chrome{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+
+  /* ============ 动效系统(Motion One 驱动) ============
+     所有 [data-anim] 元素默认隐藏,进入页面时由 JS 逐个揭示。
+     - cascade(默认):按 DOM 顺序 stagger 120ms 淡入 + y:16→0
+     - hero(hero 页自动):慢一点的 stagger 180ms
+     - quote(含 [data-anim="line"]):逐行 600ms 淡入
+     - directional(含 [data-anim="left|right"]):左→分隔线→右
+     - pipeline(data-animate="pipeline"):Space/→ 手动推进
+     Motion One 没加载成功时(CDN 断 + 本地丢),所有 [data-anim] 会兜底显示。
+  */
+  [data-anim]{opacity:1}
+  body.motion-ready [data-anim]{opacity:0}
+  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
+  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
+  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
+  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
+  body.low-power #deck{transition:none!important}
+  body.low-power *,
+  body.low-power *::before,
+  body.low-power *::after{animation:none!important;transition:none!important}
+  body.low-power.motion-ready [data-anim],
+  body.low-power [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ---------- 响应式降级 ---------- */
+  @media (max-width:900px){
+    .display{font-size:16vw}
+    .display-zh{font-size:12vw}
+    .h1-zh{font-size:7vw}
+    .h-hero{font-size:14vw}
+    .h-xl{font-size:9vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4{grid-template-columns:1fr}
+  }
+
+/* v2 readability override */
+.slide .frame{padding-left:6.4vw;padding-right:6.4vw}
+.display-zh{line-height:.95}
+.h1-zh{font-size:clamp(42px,4.35vw,76px)!important;line-height:1.08!important;letter-spacing:0!important;max-width:88vw}
+.kicker{font-size:clamp(14px,.92vw,18px)!important;letter-spacing:.16em}
+.copy{font-size:clamp(25px,1.72vw,34px);line-height:1.52;max-width:72vw;margin:3vh 0 0}
+.big-list{display:grid;gap:2.1vh;margin-top:4vh;max-width:58vw}
+.big-item{font-size:clamp(24px,1.58vw,32px);line-height:1.45;border-top:1px solid currentColor;padding-top:1.5vh}
+.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2.4vh 2vw;margin-top:4.5vh;max-width:74vw}
+.info-card{border-top:1px solid currentColor;padding-top:1.7vh;min-height:13vh}
+.card-k{font-family:var(--mono);font-size:clamp(15px,.96vw,18px);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.1vh}
+.card-v{font-size:clamp(23px,1.45vw,30px);line-height:1.42}
+.text-image{display:grid;grid-template-columns:1.05fr .95fr;gap:5vw;align-items:center;padding-top:5vh}
+.photo{margin:0;overflow:hidden;background:transparent}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo.contain img{object-fit:contain}
+.photo.right{justify-self:end}
+.photo.right img{object-position:right center}
+.photo figcaption{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-top:1vh}
+.photo.vertical{height:66vh}
+.photo.horizontal{height:42vh}
+.photo.square{height:52vh}
+.chapter-wrap{height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 6.4vw}
+.chapter-no{font-family:var(--serif-en);font-size:min(13vw,20vh);line-height:.8}
+.chapter-sub{font-size:clamp(30px,2.2vw,42px);margin-top:4vh}
+.statement-wrap{height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 7vw}
+.statement-wrap .h1-zh{font-size:clamp(54px,5.8vw,98px)!important}
+.toc-wrap{padding-top:5vh}
+.toc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;margin-top:6vh}
+.toc-card{border-top:2px solid currentColor;padding-top:2vh}
+.toc-card .part{font-family:var(--serif-en);font-size:clamp(58px,6vw,110px);line-height:.9}
+.toc-card h3{font-size:clamp(28px,2.2vw,44px);margin:1.6vh 0 2vh}
+.toc-card p{font-size:clamp(20px,1.22vw,26px);line-height:1.48;margin:0}
+.swatch-grid{display:grid;grid-template-columns:repeat(7,1fr);height:28vh;margin-top:5vh;border:1px solid currentColor}
+.swatch{position:relative;color:#fff;padding:1.2vw;display:flex;flex-direction:column;justify-content:flex-end}
+.swatch:nth-child(3){color:#222}
+.swatch span{font-size:clamp(16px,1vw,20px);font-weight:700}
+.swatch em{font-size:clamp(13px,.8vw,16px);font-style:normal;margin-top:.5vh}
+.image-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2vw;margin-top:5vh}
+.image-grid4 .photo{height:48vh}
+.material-mood-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8vw;margin-top:5vh}
+.material-mood-grid .photo{height:44vh}
+.ending-title{font-size:min(10vw,16vh)!important;line-height:.9}
+.impact-wrap{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 5vw}
+.impact-title{font-family:var(--serif);font-size:clamp(58px,7.7vw,128px)!important;line-height:.96;font-weight:900;letter-spacing:0;color:var(--paper);white-space:pre-line}
+.impact-copy{font-family:var(--serif);font-size:clamp(25px,1.7vw,34px);line-height:1.55;max-width:72vw;margin-top:6vh;color:var(--paper)}
+@media(max-width:900px){.text-image{grid-template-columns:1fr}.card-grid,.toc-grid{grid-template-columns:1fr}.big-list{max-width:86vw}.copy{max-width:86vw}.photo.vertical{height:44vh}.swatch-grid{grid-template-columns:repeat(2,1fr);height:auto}.swatch{height:14vh}}
+
+
+
+/* ============ MacBook Pro 16 inch export/readability optimization (16:10) ============ */
+@media (min-aspect-ratio: 3/2) and (max-aspect-ratio: 17/10) {
+  .slide{padding:5.4vh 5.7vw 8.6vh 5.7vw}
+  .slide .frame{padding-left:5.6vw;padding-right:5.6vw}
+  .photo.vertical{height:63vh}
+  .photo.horizontal{height:41vh}
+  .image-grid4 .photo{height:46vh}
+  .material-mood-grid .photo{height:42vh}
+  .copy{font-size:clamp(24px,1.58vw,32px);line-height:1.48}
+  .big-item{font-size:clamp(23px,1.46vw,30px);line-height:1.42}
+  .h1-zh{font-size:clamp(40px,4vw,72px)!important}
+  .impact-title{font-size:clamp(62px,7.2vw,126px)!important}
+}
+
+</style>
+</head>
+<body>
+<script>
+  (function(){
+    const KEY = 'guizang-ppt-low-power';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stored = localStorage.getItem(KEY);
+    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
+    function updateHint(){
+      const hint = document.getElementById('hint');
+      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
+    }
+    window.__setLowPowerMode = function(on, opts={}){
+      window.__lowPowerMode = !!on;
+      document.body.classList.toggle('low-power', window.__lowPowerMode);
+      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
+      if(window.__lowPowerMode && document.getAnimations){
+        document.getAnimations().forEach(a=>a.cancel());
+      }
+      updateHint();
+      dispatchEvent(new CustomEvent('ppt-low-power-change', {detail:{on:window.__lowPowerMode}}));
+      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
+    };
+    document.body.classList.toggle('low-power', window.__lowPowerMode);
+    addEventListener('DOMContentLoaded', updateHint, {once:true});
+  })();
+</script>
+
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+
+<div id="deck">
+<section class="slide hero dark">
+  <div class="chrome"><div>WAN RUNG</div><div>01 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>WAN RUNG BOAT NOODLES</div><h1 class="display-zh" style="font-size:min(9vw,15vh)" data-anim>文隆船面</h1><p class="copy" data-anim>品牌全案策划 / Wan Rung Boat Noodles</p><div class="big-list"><div class="big-item">亲民、有烟火气、有空间质感的泰式板前船面小馆</div><div class="big-item">从水上市场记忆，到当代商场里的日常一碗</div></div></div><figure class="photo vertical" style=""><img src="images/food-detail.webp" alt="Existing material / product atmosphere"><figcaption>Existing material / product atmosphere</figcaption></figure></div>
+  <div class="foot"><div>WAN RUNG</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CONTENT FLOW</div><div>02 / 79</div></div>
+  <div class="frame toc-wrap"><div class="kicker" data-anim>CONTENT FLOW</div><h2 class="h1-zh" data-anim>目录结构</h2><div class="toc-grid" data-anim>
+<section class="toc-card"><div class="part">01</div><h3>发现价值</h3><p>文化源流 / 市场机会 / 竞品格局 / 用户画像 / SWOT / 生态位</p></section>
+<section class="toc-card"><div class="part">02</div><h3>创造价值</h3><p>定位方法 / 品牌定位 / 价值画布 / 品牌故事 / 视觉识别 / 空间策略</p></section>
+<section class="toc-card"><div class="part">03</div><h3>传播价值</h3><p>产品菜单 / 定价渠道 / 内容策略 / 路线图 / 团队预算 / 风险与下一步</p></section>
+</div></div>
+  <div class="foot"><div>CONTENT FLOW</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>PART 1</div><div>03 / 79</div></div>
+  <div class="chapter-wrap"><div class="kicker" data-anim>PART 1</div><div class="chapter-no" data-anim>Part 1</div><div class="chapter-sub" data-anim>发现价值 / 市场调研</div><p class="copy">先回答：为什么船面值得做，文隆应该站在哪个空白里。</p></div>
+  <div class="foot"><div>PART 1</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>PROJECT</div><div>04 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>PROJECT</div><h2 class="h1-zh" data-anim>项目命题</h2><p class="copy" data-anim>不是泰式主题餐厅，而是一间可日常进入的小馆</p><div class="big-list"><div class="big-item">亲民：价格与尺度都让人愿意日常进入</div><div class="big-item">烟火气：热汤、香料、明档和围坐形成现场</div><div class="big-item">文化记忆：水上市场、木船、运河和旧曼谷生活</div><div class="big-item">空间质感：现代手法提炼南洋市井，不堆道具</div></div></div><figure class="photo vertical" style=""><img src="images/project-atmosphere-381.webp" alt="Existing material / restaurant atmosphere"><figcaption>Existing material / restaurant atmosphere</figcaption></figure></div>
+  <div class="foot"><div>PROJECT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>PROJECT</div><div>05 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>PROJECT</div><h2 class="h1-zh" data-anim>这不是装饰题</h2><p class="copy" data-anim>而是一个品牌模型题</p><div class="big-list"><div class="big-item">如果只做泰国符号，空间会很快变成主题餐厅。</div><div class="big-item">文隆要建立的是：产品现场、文化记忆、日常复购三者之间的关系。</div></div></div>
+  <div class="foot"><div>PROJECT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CULTURE</div><div>06 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CULTURE</div><h2 class="h1-zh" data-anim>船面的来处</h2><p class="copy" data-anim>船面是一种水上生活方式的“上岸”</p><div class="big-list"><div class="big-item">船面源于泰国水上市场与运河生活。</div><div class="big-item">小贩在船上完成煮面、调味、出餐。</div><div class="big-item">小碗传统来自船身颠簸，也形成叠碗记忆。</div></div></div><figure class="photo vertical" style=""><img src="images/boat-water.webp" alt="Existing material / boat and water"><figcaption>Existing material / boat and water</figcaption></figure></div>
+  <div class="foot"><div>CULTURE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>CULTURE</div><div>07 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>CULTURE</div><h2 class="h1-zh" data-anim>小碗不是形式</h2><p class="copy" data-anim>它是品类记忆</p><div class="big-list"><div class="big-item">小碗、浓汤、快吃、叠碗，让船面天然带有轻快节奏。</div><div class="big-item">这类记忆可以转译成商场里的板前体验，而不是简单复刻水上市场。</div></div></div>
+  <div class="foot"><div>CULTURE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CATEGORY</div><div>08 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>CATEGORY</div><h2 class="h1-zh" data-anim>品类基因 01</h2><p class="copy" data-anim>汤底是信任的来源</p><div class="card-grid"><article class="info-card"><div class="card-k">深褐浓汤</div><div class="card-v">牛骨、猪血或牛血、黑酱油与香料构成记忆点</div></article><article class="info-card"><div class="card-k">熬制时间</div><div class="card-v">汤锅和热气应该被看见，让顾客理解这碗面的价值</div></article><article class="info-card"><div class="card-k">可解释性</div><div class="card-v">菜单需要用短句说明汤底，不让新客只看到陌生品类</div></article></div></div>
+  <div class="foot"><div>CATEGORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>CATEGORY</div><div>09 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>CATEGORY</div><h2 class="h1-zh" data-anim>品类基因 02</h2><p class="copy" data-anim>香料和热气负责现场感</p><div class="card-grid"><article class="info-card"><div class="card-k">香茅 / 南姜 / 柠檬叶</div><div class="card-v">建立泰式风味识别</div></article><article class="info-card"><div class="card-k">板前明档</div><div class="card-v">让制作过程成为空间第一视觉</div></article><article class="info-card"><div class="card-k">气味管理</div><div class="card-v">保留正向香气，但不造成商场负担</div></article></div></div>
+  <div class="foot"><div>CATEGORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>HUMAN</div><div>10 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>HUMAN</div><h2 class="h1-zh" data-anim>人文内核</h2><p class="copy" data-anim>船面不只是一碗面，而是一种人与人之间的连接</p><div class="card-grid"><article class="info-card"><div class="card-k">小贩与食客</div><div class="card-v">面对面的日常信任</div></article><article class="info-card"><div class="card-k">围坐与分享</div><div class="card-v">小馆里的轻松关系</div></article><article class="info-card"><div class="card-k">热汤与香料</div><div class="card-v">共同进入一段短暂停靠</div></article></div></div><figure class="photo vertical" style=""><img src="images/market-vendor.webp" alt="Existing material / market relationship"><figcaption>Existing material / market relationship</figcaption></figure></div>
+  <div class="foot"><div>HUMAN</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>METHOD</div><div>11 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>METHOD</div><h2 class="h1-zh" data-anim>参考方法</h2><p class="copy" data-anim>台州卤煮小馆是分析方法参考，不是视觉来源</p><div class="card-grid"><article class="info-card"><div class="card-k">地域</div><div class="card-v">品牌的文化根，让空间有可感知的线索</div></article><article class="info-card"><div class="card-k">品类</div><div class="card-v">食物工艺决定烟火气、温度和材质触感</div></article><article class="info-card"><div class="card-k">小馆</div><div class="card-v">亲切尺度、紧凑布局、邻家感与复购关系</div></article></div></div>
+  <div class="foot"><div>METHOD</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>TRANSLATION</div><div>12 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>TRANSLATION</div><h2 class="h1-zh" data-anim>方法迁移</h2><p class="copy" data-anim>从参考对象，回到泰式船面自身</p><div class="card-grid"><article class="info-card"><div class="card-k">地域</div><div class="card-v">泰国水上市场与南洋街头</div></article><article class="info-card"><div class="card-k">品类</div><div class="card-v">船面汤底、香料、热气与板前制作</div></article><article class="info-card"><div class="card-k">尺度</div><div class="card-v">紧凑、亲切、围坐、开放厨房</div></article></div></div>
+  <div class="foot"><div>TRANSLATION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>KEYWORDS</div><div>13 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>KEYWORDS</div><h2 class="h1-zh" data-anim>品牌关键词</h2><p class="copy" data-anim>地道 / 怀旧 / 欢聚</p><p class="copy">三组概念支撑品牌叙事，也对应后续空间体验。</p></div>
+  <div class="foot"><div>KEYWORDS</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>KEYWORDS</div><div>14 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>KEYWORDS</div><h2 class="h1-zh" data-anim>关键词 01</h2><p class="copy" data-anim>地道 Authentic</p><div class="card-grid"><article class="info-card"><div class="card-k">不是猎奇</div><div class="card-v">让汤底、香料和熬制工艺真实可感</div></article><article class="info-card"><div class="card-k">不是昂贵</div><div class="card-v">地道感不等于高端化</div></article><article class="info-card"><div class="card-k">不是堆符号</div><div class="card-v">用制作过程和食物逻辑建立正宗感</div></article></div></div>
+  <div class="foot"><div>KEYWORDS</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>KEYWORDS</div><div>15 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>KEYWORDS</div><h2 class="h1-zh" data-anim>关键词 02</h2><p class="copy" data-anim>怀旧 Nostalgic</p><div class="card-grid"><article class="info-card"><div class="card-k">水上市场</div><div class="card-v">旧曼谷生活的精神来源</div></article><article class="info-card"><div class="card-k">木船与运河</div><div class="card-v">不是道具，而是形体和动线的启发</div></article><article class="info-card"><div class="card-k">时间痕迹</div><div class="card-v">柚木、藤编、黄铜、粗陶承担材质记忆</div></article></div></div>
+  <div class="foot"><div>KEYWORDS</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>KEYWORDS</div><div>16 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>KEYWORDS</div><h2 class="h1-zh" data-anim>关键词 03</h2><p class="copy" data-anim>欢聚 Festive</p><div class="card-grid"><article class="info-card"><div class="card-k">围坐</div><div class="card-v">让单人、双人、小聚餐都自然发生</div></article><article class="info-card"><div class="card-k">热汤</div><div class="card-v">比静态装饰更有情绪温度</div></article><article class="info-card"><div class="card-k">轻松</div><div class="card-v">商场B1的小馆，不制造正式餐厅压力</div></article></div></div>
+  <div class="foot"><div>KEYWORDS</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>MARKET</div><div>17 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>MARKET</div><h2 class="h1-zh" data-anim>市场机会</h2><p class="copy" data-anim>船面处于“有认知、少品牌”的占位窗口</p><div class="card-grid"><article class="info-card"><div class="card-k">中国餐饮</div><div class="card-v">2024年总规模约5.57万亿元</div></article><article class="info-card"><div class="card-k">广州泰国菜</div><div class="card-v">门店基数大，但船面专门店少</div></article><article class="info-card"><div class="card-k">船面专门店</div><div class="card-v">广州约8-12家，仍以街铺和小店为主</div></article><article class="info-card"><div class="card-k">价格带</div><div class="card-v">35-65元具备商场B1日常消费可能</div></article></div></div>
+  <div class="foot"><div>MARKET</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>PESTEL</div><div>18 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>PESTEL</div><h2 class="h1-zh" data-anim>PESTEL 01</h2><p class="copy" data-anim>外部环境整体偏利好</p><div class="card-grid"><article class="info-card"><div class="card-k">政策</div><div class="card-v">广州天河首店经济与特色餐饮招商倾斜</div></article><article class="info-card"><div class="card-k">经济</div><div class="card-v">消费审慎化，35-55元属于防御性价格带</div></article><article class="info-card"><div class="card-k">社会</div><div class="card-v">烟火气、松弛感、附近性成为城市消费关键词</div></article></div></div>
+  <div class="foot"><div>PESTEL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>PESTEL</div><div>19 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>PESTEL</div><h2 class="h1-zh" data-anim>PESTEL 02</h2><p class="copy" data-anim>真正要处理的是执行细节</p><div class="card-grid"><article class="info-card"><div class="card-k">技术</div><div class="card-v">明档厨房设备成熟，小空间高效出餐可实现</div></article><article class="info-card"><div class="card-k">环境</div><div class="card-v">广州气候与泰国相近，全年适合汤面品类</div></article><article class="info-card"><div class="card-k">法律</div><div class="card-v">进口香料、食品安全与商场排风要提前合规</div></article></div></div>
+  <div class="foot"><div>PESTEL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>COMPETITOR</div><div>20 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>COMPETITOR</div><h2 class="h1-zh" data-anim>竞品地图</h2><p class="copy" data-anim>商场B1仍缺少有品牌感的船面专门店</p><div class="card-grid"><article class="info-card"><div class="card-k">Thong Smith</div><div class="card-v">高端化、商场化、跨区域，但未进大陆</div></article><article class="info-card"><div class="card-k">MixThai</div><div class="card-v">深圳商场已验证，但品牌感偏热带装饰</div></article><article class="info-card"><div class="card-k">臻金 / 森米泰</div><div class="card-v">广州街铺口碑强，但商场化能力不足</div></article><article class="info-card"><div class="card-k">文隆机会</div><div class="card-v">40-60元、商场B1、船面专门店、空间有质感</div></article></div></div>
+  <div class="foot"><div>COMPETITOR</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CASE</div><div>21 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CASE</div><h2 class="h1-zh" data-anim>Thong Smith</h2><p class="copy" data-anim>证明船面可以进入商场，也能支撑溢价</p><div class="big-list"><div class="big-item">用和牛、辣度定制和精致环境做高端船面。</div><div class="big-item">它的启示不是复制价格，而是证明品类可以被品牌化。</div></div></div><figure class="photo vertical" style=""><img src="images/thong-store.webp" alt="Thong Smith / store"><figcaption>Thong Smith / store</figcaption></figure></div>
+  <div class="foot"><div>CASE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>CASE</div><div>22 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CASE</div><h2 class="h1-zh" data-anim>Thong Smith 的启示</h2><p class="copy" data-anim>把选择权和体验感做清楚</p><div class="big-list"><div class="big-item">辣度、肉类、汤底选择让陌生品类变得可点。</div><div class="big-item">文隆不走高端，但需要把“怎么吃、为什么值”讲清楚。</div></div></div><figure class="photo vertical" style=""><img src="images/thong-food.webp" alt="Thong Smith / food"><figcaption>Thong Smith / food</figcaption></figure></div>
+  <div class="foot"><div>CASE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CASE</div><div>23 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CASE</div><h2 class="h1-zh" data-anim>MixThai</h2><p class="copy" data-anim>最接近的模式参照</p><div class="big-list"><div class="big-item">深圳商场双店模型已验证泰式小馆的商场可能。</div><div class="big-item">问题在于度假装饰感偏强，船面品类不够突出。</div></div></div><figure class="photo vertical" style=""><img src="images/mixthai-store.webp" alt="MixThai / store"><figcaption>MixThai / store</figcaption></figure></div>
+  <div class="foot"><div>CASE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CASE</div><div>24 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CASE</div><h2 class="h1-zh" data-anim>MixThai 的启示</h2><p class="copy" data-anim>文隆要把制作现场和文化记忆做得更清楚</p><div class="big-list"><div class="big-item">减少“热带装饰”，增加“板前明档”。</div><div class="big-item">减少综合泰餐感，强化船面作为主品类。</div></div></div><figure class="photo vertical" style=""><img src="images/mixthai-food.webp" alt="MixThai / food"><figcaption>MixThai / food</figcaption></figure></div>
+  <div class="foot"><div>CASE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>CASE</div><div>25 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CASE</div><h2 class="h1-zh" data-anim>臻金泰国船面</h2><p class="copy" data-anim>广州在地标杆，验证消费者接受度</p><div class="big-list"><div class="big-item">街铺体量小、口碑驱动、人均30-45元。</div><div class="big-item">启示：产品力是底线，但商场化需要更完整的品牌表达。</div></div></div><figure class="photo vertical" style=""><img src="images/zhenjin-store.webp" alt="Local benchmark / Guangzhou"><figcaption>Local benchmark / Guangzhou</figcaption></figure></div>
+  <div class="foot"><div>CASE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>MODEL</div><div>26 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>MODEL</div><h2 class="h1-zh" data-anim>街铺与商场的差异</h2><p class="copy" data-anim>文隆不能照搬街铺模型</p><div class="card-grid"><article class="info-card"><div class="card-k">街铺优势</div><div class="card-v">地道、便宜、烟火气强</div></article><article class="info-card"><div class="card-k">街铺短板</div><div class="card-v">空间体验、标准化和导视弱</div></article><article class="info-card"><div class="card-k">商场要求</div><div class="card-v">可见度、效率、卫生感、品牌识别</div></article><article class="info-card"><div class="card-k">文隆路径</div><div class="card-v">产品扎实 + 空间有记忆 + 商场可运营</div></article></div></div>
+  <div class="foot"><div>MODEL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>NICHE</div><div>27 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>NICHE</div><h2 class="h1-zh" data-anim>结构性空白</h2><p class="copy" data-anim>广州天河商场B1，40-60元船面专门店仍是明显空白</p><p class="copy">这不是一个“再开一家泰餐”的机会，而是先定义商场船面小馆的机会。</p></div>
+  <div class="foot"><div>NICHE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>USER A</div><div>28 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>USER A</div><h2 class="h1-zh" data-anim>核心用户</h2><p class="copy" data-anim>商场觅食者·阿琳</p><div class="card-grid"><article class="info-card"><div class="card-k">场景</div><div class="card-v">工作日午餐，不想再吃茶餐厅、米线、麻辣烫</div></article><article class="info-card"><div class="card-k">期待</div><div class="card-v">不太贵、不太随便，觉得今天吃了顿好的</div></article><article class="info-card"><div class="card-k">痛点</div><div class="card-v">商场B1同质化严重，想要新鲜感但不想冒险</div></article></div></div>
+  <div class="foot"><div>USER A</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>USER A</div><div>29 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>USER A</div><h2 class="h1-zh" data-anim>阿琳的三层任务</h2><p class="copy" data-anim>功能 / 情绪 / 社交</p><div class="card-grid"><article class="info-card"><div class="card-k">功能</div><div class="card-v">快速吃到一顿热乎、好吃、不贵的饭</div></article><article class="info-card"><div class="card-k">情绪</div><div class="card-v">今天不是随便应付，而是在好好生活</div></article><article class="info-card"><div class="card-k">社交</div><div class="card-v">带朋友来不丢脸，空间有质感但不装</div></article></div></div>
+  <div class="foot"><div>USER A</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>USER B</div><div>30 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>USER B</div><h2 class="h1-zh" data-anim>增长用户</h2><p class="copy" data-anim>周末探索者·Jason</p><div class="card-grid"><article class="info-card"><div class="card-k">触发</div><div class="card-v">小红书刷到“广州新开船面”</div></article><article class="info-card"><div class="card-k">门槛</div><div class="card-v">不知道船面是什么，需视觉触发</div></article><article class="info-card"><div class="card-k">转化</div><div class="card-v">出片、好吃、不贵，人均50可以冲</div></article></div></div>
+  <div class="foot"><div>USER B</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>USER JOURNEY</div><div>31 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>USER JOURNEY</div><h2 class="h1-zh" data-anim>用户转化路径</h2><p class="copy" data-anim>从陌生到复购</p><div class="card-grid"><article class="info-card"><div class="card-k">看到</div><div class="card-v">热汤、明档、南洋材质先形成兴趣</div></article><article class="info-card"><div class="card-k">理解</div><div class="card-v">菜单和空间说明解释“为什么叫船面”</div></article><article class="info-card"><div class="card-k">体验</div><div class="card-v">坐下看见制作，闻到香料，吃到浓汤</div></article><article class="info-card"><div class="card-k">复购</div><div class="card-v">把它纳入商场B1日常选择</div></article></div></div>
+  <div class="foot"><div>USER JOURNEY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>SWOT</div><div>32 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>SWOT 交叉判断</h2><p class="copy" data-anim>把内部优势转成外部可感知的竞争力</p><p class="copy">文隆的关键不在单点优势，而在明档、文化记忆、商场位置和小馆尺度之间形成组合。</p></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SWOT</div><div>33 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>优势 S</h2><p class="copy" data-anim>模型组合形成壁垒</p><div class="card-grid"><article class="info-card"><div class="card-k">明档</div><div class="card-v">制作过程就是体验壁垒</div></article><article class="info-card"><div class="card-k">美学</div><div class="card-v">可视的在地文化素养建立视觉记忆</div></article><article class="info-card"><div class="card-k">叙事</div><div class="card-v">水上市场让品牌有根</div></article><article class="info-card"><div class="card-k">渠道</div><div class="card-v">商场B1可抢先占位</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SWOT</div><div>34 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>劣势 W</h2><p class="copy" data-anim>品牌从零，需要用现场补信任</p><div class="card-grid"><article class="info-card"><div class="card-k">认知</div><div class="card-v">新品牌需要解释船面</div></article><article class="info-card"><div class="card-k">产能</div><div class="card-v">65-70㎡有午市天花板</div></article><article class="info-card"><div class="card-k">资源</div><div class="card-v">初创团队需要聚焦</div></article><article class="info-card"><div class="card-k">口味</div><div class="card-v">偏泰式口味需本地化微调</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>SWOT</div><div>35 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>机会 O</h2><p class="copy" data-anim>用户正在寻找新的日常选择</p><div class="card-grid"><article class="info-card"><div class="card-k">同质化疲劳</div><div class="card-v">商场B1常见品类重复</div></article><article class="info-card"><div class="card-k">异国街头美食</div><div class="card-v">Z世代天然好奇</div></article><article class="info-card"><div class="card-k">社交内容</div><div class="card-v">热汤、明档、出片天然可传播</div></article><article class="info-card"><div class="card-k">首店效应</div><div class="card-v">先定义广州商场船面小馆</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SWOT</div><div>36 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>威胁 T</h2><p class="copy" data-anim>竞品入场和租金压力要提前设防</p><div class="card-grid"><article class="info-card"><div class="card-k">大牌进入</div><div class="card-v">Thong Smith 或类似品牌入场</div></article><article class="info-card"><div class="card-k">模仿者</div><div class="card-v">低价泰式粉面快速复制</div></article><article class="info-card"><div class="card-k">租金</div><div class="card-v">商场B1需要稳定翻台</div></article><article class="info-card"><div class="card-k">品类教育</div><div class="card-v">船面不能只靠新鲜感</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SWOT</div><div>37 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>策略组合 01</h2><p class="copy" data-anim>SO / WO</p><div class="card-grid"><article class="info-card"><div class="card-k">SO</div><div class="card-v">用明档和空间记忆抢占品类心智</div></article><article class="info-card"><div class="card-k">SO</div><div class="card-v">把广州第一家商场船面小馆讲清楚</div></article><article class="info-card"><div class="card-k">WO</div><div class="card-v">用菜单解释降低陌生感</div></article><article class="info-card"><div class="card-k">WO</div><div class="card-v">先做小模型，不急于扩张</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>SWOT</div><div>38 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>SWOT</div><h2 class="h1-zh" data-anim>策略组合 02</h2><p class="copy" data-anim>ST / WT</p><div class="card-grid"><article class="info-card"><div class="card-k">ST</div><div class="card-v">用品牌故事和空间系统抵抗低价模仿</div></article><article class="info-card"><div class="card-k">ST</div><div class="card-v">抢先沉淀社交内容和点评资产</div></article><article class="info-card"><div class="card-k">WT</div><div class="card-v">控制菜单复杂度，保证出餐效率</div></article><article class="info-card"><div class="card-k">WT</div><div class="card-v">租金压力下以复购和翻台为核心</div></article></div></div>
+  <div class="foot"><div>SWOT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>NICHE</div><div>39 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>NICHE</div><h2 class="h1-zh" data-anim>生态位结论</h2><p class="copy" data-anim>品类占位者</p><p class="copy">在广州天河商场B1层，做一间有品牌感、有文化记忆、有烟火气、也能日常复购的板前船面小馆。</p></div>
+  <div class="foot"><div>NICHE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>PART 2</div><div>40 / 79</div></div>
+  <div class="chapter-wrap"><div class="kicker" data-anim>PART 2</div><div class="chapter-no" data-anim>Part 2</div><div class="chapter-sub" data-anim>创造价值 / 战略定位</div><p class="copy">让文隆从“一个餐饮项目”变成“有清楚识别与体验逻辑的品牌”。</p></div>
+  <div class="foot"><div>PART 2</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>POSITION</div><div>41 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>POSITION</div><h2 class="h1-zh" data-anim>定位方法</h2><p class="copy" data-anim>四问决策 → 品类占位型</p><div class="card-grid"><article class="info-card"><div class="card-k">是否有领导品牌</div><div class="card-v">中国商场船面市场暂无明确领导者</div></article><article class="info-card"><div class="card-k">是否有消费认知</div><div class="card-v">消费者对泰餐有认知，对船面有新鲜感</div></article><article class="info-card"><div class="card-k">是否有渠道空白</div><div class="card-v">广州天河商场B1尚未被占据</div></article><article class="info-card"><div class="card-k">定位方法</div><div class="card-v">切割 · 品类占位</div></article></div></div>
+  <div class="foot"><div>POSITION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>POSITION</div><div>42 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>POSITION</div><h2 class="h1-zh" data-anim>品牌定位语</h2><p class="copy" data-anim>一间亲民、有烟火气、有空间质感的泰式板前船面小馆</p><p class="copy">定位要让人听完知道它是什么、为谁服务、为什么不同。</p></div>
+  <div class="foot"><div>POSITION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>POSITION</div><div>43 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>POSITION</div><h2 class="h1-zh" data-anim>定位四格</h2><p class="copy" data-anim>我是 / 为谁 / 提供什么 / 如何不同</p><div class="card-grid"><article class="info-card"><div class="card-k">我是</div><div class="card-v">文隆船面，一间板前明档泰式船面小馆</div></article><article class="info-card"><div class="card-k">为谁</div><div class="card-v">广州天河商场里的日常觅食者</div></article><article class="info-card"><div class="card-k">提供什么</div><div class="card-v">汤底现熬、香料可见、热气扑面的泰式船面</div></article><article class="info-card"><div class="card-k">如何不同</div><div class="card-v">把水上市场旧生活记忆转译进当代商场</div></article></div></div>
+  <div class="foot"><div>POSITION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>VALUE</div><div>44 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>VALUE</div><h2 class="h1-zh" data-anim>价值画布 01</h2><p class="copy" data-anim>用户侧任务</p><div class="card-grid"><article class="info-card"><div class="card-k">功能任务</div><div class="card-v">快速吃到一顿好饭</div></article><article class="info-card"><div class="card-k">情绪任务</div><div class="card-v">今天的饭不太随便</div></article><article class="info-card"><div class="card-k">社会任务</div><div class="card-v">带朋友来不丢脸</div></article></div></div>
+  <div class="foot"><div>VALUE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>VALUE</div><div>45 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>VALUE</div><h2 class="h1-zh" data-anim>价值画布 02</h2><p class="copy" data-anim>品牌侧回应</p><div class="card-grid"><article class="info-card"><div class="card-k">产品回应</div><div class="card-v">汤底、香料、热气可被感知</div></article><article class="info-card"><div class="card-k">空间回应</div><div class="card-v">板前明档、围坐关系、南洋材质</div></article><article class="info-card"><div class="card-k">传播回应</div><div class="card-v">水上市场故事和日常复购内容</div></article></div></div>
+  <div class="foot"><div>VALUE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>MISSION</div><div>46 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>MISSION</div><h2 class="h1-zh" data-anim>使命</h2><p class="copy" data-anim>让一碗上岸的船面，成为城市人日常里的一口热汤</p><p class="copy">商场B1的午餐不该总是随便吃点。文隆要给反复选择的人一个不用做攻略、也不觉得将就的答案。</p></div>
+  <div class="foot"><div>MISSION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>VISION</div><div>47 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>VISION</div><h2 class="h1-zh" data-anim>愿景</h2><p class="copy" data-anim>阶段化目标</p><div class="card-grid"><article class="info-card"><div class="card-k">3年</div><div class="card-v">广州消费者提到船面，第一个想到文隆</div></article><article class="info-card"><div class="card-k">5年</div><div class="card-v">成为珠三角船面品类代名词</div></article><article class="info-card"><div class="card-k">10年</div><div class="card-v">形成可复制的小馆模型和供应链标准</div></article></div></div>
+  <div class="foot"><div>VISION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>VALUES</div><div>48 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>VALUES</div><h2 class="h1-zh" data-anim>价值观</h2><p class="copy" data-anim>热汤可见、亲民不廉价、文化不堆砌</p><div class="card-grid"><article class="info-card"><div class="card-k">热汤可见</div><div class="card-v">相信真实制作比装饰更有力量</div></article><article class="info-card"><div class="card-k">亲民不廉价</div><div class="card-v">价格亲近，但体验不能粗糙</div></article><article class="info-card"><div class="card-k">文化不堆砌</div><div class="card-v">所有文化表达都要回到船面本身</div></article></div></div>
+  <div class="foot"><div>VALUES</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>ARCHETYPE</div><div>49 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>ARCHETYPE</div><h2 class="h1-zh" data-anim>品牌人格</h2><p class="copy" data-anim>凡人 × 创造者</p><div class="card-grid"><article class="info-card"><div class="card-k">凡人</div><div class="card-v">亲切、没有距离感、属于每一个人</div></article><article class="info-card"><div class="card-k">创造者</div><div class="card-v">把旧水上市场记忆，用当代空间语言重造</div></article><article class="info-card"><div class="card-k">边界</div><div class="card-v">不高冷、不猎奇、不网红化</div></article></div></div>
+  <div class="foot"><div>ARCHETYPE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>STORY</div><div>50 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>STORY</div><h2 class="h1-zh" data-anim>品牌故事 01</h2><p class="copy" data-anim>一碗面的上岸</p><div class="big-list"><div class="big-item">旧曼谷清晨，运河水面上有香料和炭火的气味。</div><div class="big-item">木船上的小贩舀一勺深褐色的汤，热气在晨光里升起来。</div></div></div><figure class="photo vertical" style=""><img src="images/boat-market.webp" alt="Water market memory"><figcaption>Water market memory</figcaption></figure></div>
+  <div class="foot"><div>STORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>STORY</div><div>51 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>STORY</div><h2 class="h1-zh" data-anim>品牌故事 02</h2><p class="copy" data-anim>当运河被公路取代，船面上了岸</p><div class="big-list"><div class="big-item">它从船上来到街边，又从街边进入商场。</div><div class="big-item">改变的是场景，不变的是一碗热汤带来的短暂停靠。</div></div></div>
+  <div class="foot"><div>STORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>STORY</div><div>52 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>STORY</div><h2 class="h1-zh" data-anim>品牌故事 03</h2><p class="copy" data-anim>进入文隆这个空间</p><div class="big-list"><div class="big-item">客人先看到汤锅和热气，再闻到香料。</div><div class="big-item">坐下之后，板前制作把陌生品类变成可理解的日常体验。</div></div></div>
+  <div class="foot"><div>STORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>NAMING</div><div>53 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>NAMING</div><h2 class="h1-zh" data-anim>品牌命名</h2><p class="copy" data-anim>文隆船面</p><div class="card-grid"><article class="info-card"><div class="card-k">易读</div><div class="card-v">三字常见，普通话和粤语无生僻字</div></article><article class="info-card"><div class="card-k">易记</div><div class="card-v">传统商号感，区别于同质化“X泰”命名</div></article><article class="info-card"><div class="card-k">有意义</div><div class="card-v">文=文化/人文，隆=兴隆/厚重</div></article><article class="info-card"><div class="card-k">建议</div><div class="card-v">同步核查第43类商标与“泰珍文隆”</div></article></div></div>
+  <div class="foot"><div>NAMING</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>SLOGAN</div><div>54 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>SLOGAN</div><h2 class="h1-zh" data-anim>广告语</h2><p class="copy" data-anim>一碗上岸的南洋烟火</p><div class="big-list"><div class="big-item">“上岸”承接船面文化，“南洋烟火”承接空间和体验。</div><div class="big-item">店内可用：热汤在眼前，人情在碗边。</div></div></div>
+  <div class="foot"><div>SLOGAN</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>VISUAL</div><div>55 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>VISUAL</div><h2 class="h1-zh" data-anim>视觉识别体系</h2><p class="copy" data-anim>柚木 × 陶土 × 深绿 × 黄铜 + Azure Blue 品牌识别辅助色块</p><div class="swatch-grid"><div class="swatch" style="background:#8B6914"><span>柚木色</span><em>空间温度</em></div><div class="swatch" style="background:#C67B4B"><span>陶土棕</span><em>汤底与香料</em></div><div class="swatch" style="background:#F5F0E8"><span>米白</span><em>留白与呼吸</em></div><div class="swatch" style="background:#3A3A3C"><span>炭灰</span><em>现代层次</em></div><div class="swatch" style="background:#2D5A3D"><span>深绿</span><em>南洋湿润感</em></div><div class="swatch" style="background:#B8860B"><span>黄铜</span><em>时间痕迹</em></div><div class="swatch" style="background:#4D91C6"><span>Azure Blue</span><em>品牌识别辅助色块</em></div></div><p class="copy">Azure Blue 仅作为 VI 辅助识别与局部色块，不等同于品牌主色或空间主色。</p></div>
+  <div class="foot"><div>VISUAL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>STYLE</div><div>56 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>STYLE</div><h2 class="h1-zh" data-anim>风格定位</h2><p class="copy" data-anim>Modern Rustic Thai Boat Noodle</p><div class="big-list"><div class="big-item">用现代手法提炼泰国水上市场的市井记忆。</div><div class="big-item">亲民、有质感，带一点怀旧，但不做主题餐厅。</div></div></div>
+  <div class="foot"><div>STYLE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>SPACE</div><div>57 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>SPACE</div><h2 class="h1-zh" data-anim>空间策略总纲</h2><p class="copy" data-anim>空间的角色：让品牌识别、产品信任与消费记忆同时落地</p><p class="copy">文隆的空间不是后期包装。它是客人理解品牌的第一界面：先看见制作，再闻到香料，最后坐进一间有日常关系的小馆。</p></div>
+  <div class="foot"><div>SPACE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>ATMOSPHERE</div><div>58 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>ATMOSPHERE</div><h2 class="h1-zh" data-anim>餐厅氛围图</h2><p class="copy" data-anim>以板前明档、入口细节、餐品热气和开放厨房建立小馆日常烟火感</p>
+<div class="image-grid4" data-anim>
+<figure class="photo" style=""><img src="images/counter-warm.webp" alt="板前明档"><figcaption>板前明档</figcaption></figure>
+<figure class="photo" style=""><img src="images/interior-detail.webp" alt="入口细节"><figcaption>入口细节</figcaption></figure>
+<figure class="photo" style=""><img src="images/entry-detail-380.webp" alt="餐厅氛围补充"><figcaption>餐厅氛围补充</figcaption></figure>
+<figure class="photo" style=""><img src="images/food-detail.webp" alt="餐品氛围"><figcaption>餐品氛围</figcaption></figure>
+</div></div>
+  <div class="foot"><div>ATMOSPHERE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SPATIAL THEATRE</div><div>59 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>SPATIAL THEATRE</div><h2 class="h1-zh" data-anim>空间布局策略</h2><p class="copy" data-anim>把制作过程变成空间的舞台</p><div class="big-list"><div class="big-item">板前明档：汤锅热气成为视觉焦点。</div><div class="big-item">开放厨房：让熬制与出餐过程建立信任。</div><div class="big-item">紧凑动线：小体量高效率，适配日常快食。</div><div class="big-item">围坐关系：单人、双人、小聚餐都能自然进入。</div></div></div><figure class="photo vertical" style=""><img src="images/counter-space.webp" alt="Existing material / open counter"><figcaption>Existing material / open counter</figcaption></figure></div>
+  <div class="foot"><div>SPATIAL THEATRE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>MATERIAL</div><div>60 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>MATERIAL</div><h2 class="h1-zh" data-anim>色彩与材质</h2><p class="copy" data-anim>以木色建立温度，用深绿、炭灰、米白和铜色调节层次</p><div class="card-grid"><article class="info-card"><div class="card-k">柚木 / 藤编</div><div class="card-v">温润、手作、南洋日常</div></article><article class="info-card"><div class="card-k">陶土 / 粗陶</div><div class="card-v">汤底、香料、手工温度</div></article><article class="info-card"><div class="card-k">深绿 / 炭灰</div><div class="card-v">湿润气候与现代层次</div></article><article class="info-card"><div class="card-k">黄铜</div><div class="card-v">灯具、把手、边框里的时间痕迹</div></article></div></div>
+  <div class="foot"><div>MATERIAL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>MATERIAL REFERENCES</div><div>61 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>MATERIAL REFERENCES</div><h2 class="h1-zh" data-anim>材质情绪板</h2><p class="copy" data-anim>木饰面与木梁 / 藤编座椅 / 手工砖 / 艺术涂料 / 黄铜灯具 / 粗陶餐具</p>
+<div class="material-mood-grid" data-anim>
+<figure class="photo contain" style=""><img src="images/ocean-weave.webp" alt="编织图腾"><figcaption>编织图腾</figcaption></figure>
+<figure class="photo" style=""><img src="images/water-texture.webp" alt="水波 / 蓝色纹理"><figcaption>水波 / 蓝色纹理</figcaption></figure>
+<figure class="photo" style=""><img src="images/window-detail.webp" alt="做旧材质"><figcaption>做旧材质</figcaption></figure>
+</div></div>
+  <div class="foot"><div>MATERIAL REFERENCES</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CULTURAL DETAILS</div><div>62 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>CULTURAL DETAILS</div><h2 class="h1-zh" data-anim>文化植入</h2><p class="copy" data-anim>抽象转译，不是道具堆砌</p><div class="big-list"><div class="big-item">水上市集线描壁画，或运河小船艺术墙纸。</div><div class="big-item">弧形卡座模拟船身曲线。</div><div class="big-item">地面铜条象征水波或船桨轨迹。</div><div class="big-item">陶罐、香料罐、泰式木窗框作为日常物件。</div></div></div><figure class="photo vertical contain right" style=""><img src="images/water-market-172049.webp" alt="Existing material / cultural details"><figcaption>Existing material / cultural details</figcaption></figure></div>
+  <div class="foot"><div>CULTURAL DETAILS</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>SENSORY</div><div>63 / 79</div></div>
+  <div class="statement-wrap"><div class="kicker" data-anim>SENSORY</div><h2 class="h1-zh" data-anim>五感体验</h2><p class="copy" data-anim>让空间不只被看见，也被闻到、听到、触到</p><p class="copy">五感是文隆区别于普通快餐的关键：它让一碗船面从产品变成记忆。</p></div>
+  <div class="foot"><div>SENSORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SENSORY</div><div>64 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>SENSORY</div><h2 class="h1-zh" data-anim>五感拆解</h2><p class="copy" data-anim>视觉 / 嗅觉 / 味觉 / 触觉 / 听觉</p><div class="big-list"><div class="big-item">视觉：热气、汤锅、木色、暖光。</div><div class="big-item">嗅觉：香料、汤底、草本气息。</div><div class="big-item">触觉：木、藤、陶、手工砖。</div><div class="big-item">听觉：板前操作声、轻微交谈声。</div></div></div><figure class="photo vertical" style=""><img src="images/serving-noodle.webp" alt="Existing material / soup serving"><figcaption>Existing material / soup serving</figcaption></figure></div>
+  <div class="foot"><div>SENSORY</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>DESIGN MATRIX</div><div>65 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>DESIGN MATRIX</div><h2 class="h1-zh" data-anim>设计策略矩阵</h2><p class="copy" data-anim>五个维度转成可执行的空间语言</p><div class="card-grid"><article class="info-card"><div class="card-k">色调材质</div><div class="card-v">柚木、陶土、米白、炭灰、深绿、黄铜</div></article><article class="info-card"><div class="card-k">装饰元素</div><div class="card-v">木屋结构、铜灯、方窗、陶罐、藤编</div></article><article class="info-card"><div class="card-k">空间布局</div><div class="card-v">开放厨房、板前明档、紧凑高效</div></article><article class="info-card"><div class="card-k">文化植入</div><div class="card-v">水上市集、运河、小船、旧曼谷记忆</div></article></div></div>
+  <div class="foot"><div>DESIGN MATRIX</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>SPACE PLAN</div><div>66 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>SPACE PLAN</div><h2 class="h1-zh" data-anim>空间 / 材质 / 体验策略</h2><p class="copy" data-anim>开放明档、南洋材质、文化转译和五感体验</p><div class="big-list"><div class="big-item">板前明档操作区，是空间策略的视觉锚点。</div><div class="big-item">它让顾客在进门前就理解：这不是普通粉面店。</div></div></div><figure class="photo vertical" style=""><img src="images/front-counter-385.webp" alt="Existing material / front counter"><figcaption>Existing material / front counter</figcaption></figure></div>
+  <div class="foot"><div>SPACE PLAN</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>PART 3</div><div>67 / 79</div></div>
+  <div class="chapter-wrap"><div class="kicker" data-anim>PART 3</div><div class="chapter-no" data-anim>Part 3</div><div class="chapter-sub" data-anim>传播价值 / 战略执行</div><p class="copy">把定位变成菜单、价格、渠道、内容、团队和风险控制。</p></div>
+  <div class="foot"><div>PART 3</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>PRODUCT</div><div>68 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>PRODUCT</div><h2 class="h1-zh" data-anim>产品策略</h2><p class="copy" data-anim>汤底负责信任，香料负责记忆，热气负责现场</p><div class="card-grid"><article class="info-card"><div class="card-k">MUST</div><div class="card-v">经典牛肉船面、猪肉丸船面、泰式打抛饭、泰红泰绿奶茶</div></article><article class="info-card"><div class="card-k">CAN</div><div class="card-v">冬阴功海鲜面、炸鸡翅、芒果糯米饭、龙眼冰茶</div></article><article class="info-card"><div class="card-k">WON&#x27;T</div><div class="card-v">不做与船面无关的大而全泰餐</div></article></div></div>
+  <div class="foot"><div>PRODUCT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>PRICE</div><div>69 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>PRICE</div><h2 class="h1-zh" data-anim>定价策略</h2><p class="copy" data-anim>35-55元是快餐与体验之间的甜点价格带</p><div class="card-grid"><article class="info-card"><div class="card-k">船面</div><div class="card-v">38-48元，主力产品与价格锚点</div></article><article class="info-card"><div class="card-k">打抛饭</div><div class="card-v">32-38元，覆盖非面食人群</div></article><article class="info-card"><div class="card-k">饮品甜品</div><div class="card-v">15-28元，提高客单与记忆点</div></article></div></div>
+  <div class="foot"><div>PRICE</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>CHANNEL</div><div>70 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>CHANNEL</div><h2 class="h1-zh" data-anim>渠道策略</h2><p class="copy" data-anim>首店 = 天河中等商场B1，65-70㎡，20-25座</p><div class="card-grid"><article class="info-card"><div class="card-k">区域</div><div class="card-v">体育西、珠江新城、天河路商圈</div></article><article class="info-card"><div class="card-k">楼层</div><div class="card-v">B1层，餐饮聚集与人流发动机</div></article><article class="info-card"><div class="card-k">面积</div><div class="card-v">65-70㎡，含厨房与客区</div></article><article class="info-card"><div class="card-k">座位</div><div class="card-v">20-25个，含板前吧台与散桌</div></article></div></div>
+  <div class="foot"><div>CHANNEL</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>CONTENT</div><div>71 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>CONTENT</div><h2 class="h1-zh" data-anim>内容策略</h2><p class="copy" data-anim>不做网红打卡，做日常被发现</p><div class="card-grid"><article class="info-card"><div class="card-k">汤底故事</div><div class="card-v">一锅汤熬了多久，香料从哪里来</div></article><article class="info-card"><div class="card-k">船面文化</div><div class="card-v">为什么叫船面，为什么是小碗</div></article><article class="info-card"><div class="card-k">日常感</div><div class="card-v">今天又来文隆了</div></article></div></div>
+  <div class="foot"><div>CONTENT</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>ROADMAP</div><div>72 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>ROADMAP</div><h2 class="h1-zh" data-anim>Year 1 路线图</h2><p class="copy" data-anim>筹备 / 开业 / 爬坡 / 稳定</p><div class="card-grid"><article class="info-card"><div class="card-k">Q1</div><div class="card-v">选址、设计、供应链、商标</div></article><article class="info-card"><div class="card-k">Q2</div><div class="card-v">试营业与首店模型验证</div></article><article class="info-card"><div class="card-k">Q3</div><div class="card-v">评分、复购、UGC 内容爬坡</div></article><article class="info-card"><div class="card-k">Q4</div><div class="card-v">SOP、财务模型、第二店评估</div></article></div></div>
+  <div class="foot"><div>ROADMAP</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>TEAM</div><div>73 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>TEAM</div><h2 class="h1-zh" data-anim>团队配置</h2><p class="copy" data-anim>初期4-5人，创始人开业前3个月亲自驻店</p><div class="card-grid"><article class="info-card"><div class="card-k">店长/主厨</div><div class="card-v">汤底熬制、品控、店面管理</div></article><article class="info-card"><div class="card-k">厨师/帮厨</div><div class="card-v">面食制作、小食出品</div></article><article class="info-card"><div class="card-k">服务员</div><div class="card-v">点单、出餐、收银、清洁</div></article></div></div>
+  <div class="foot"><div>TEAM</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>BUDGET</div><div>74 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>BUDGET</div><h2 class="h1-zh" data-anim>预算量级</h2><p class="copy" data-anim>首年总投资约50-80万，不含食材流动资金</p><div class="card-grid"><article class="info-card"><div class="card-k">装修 + 设备</div><div class="card-v">25-35万</div></article><article class="info-card"><div class="card-k">首年租金</div><div class="card-v">25-40万</div></article><article class="info-card"><div class="card-k">品牌/设计/营销</div><div class="card-v">5-8万</div></article><article class="info-card"><div class="card-k">策略</div><div class="card-v">先验证单店模型，再谈扩张</div></article></div></div>
+  <div class="foot"><div>BUDGET</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>RISK</div><div>75 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>RISK</div><h2 class="h1-zh" data-anim>风险清单</h2><p class="copy" data-anim>提前设预警，不靠感觉扩店</p><div class="card-grid"><article class="info-card"><div class="card-k">品类接受度</div><div class="card-v">开业2个月日均低于80人需调整沟通</div></article><article class="info-card"><div class="card-k">租金压力</div><div class="card-v">连续3月净利为负需重谈或补外卖</div></article><article class="info-card"><div class="card-k">竞品入场</div><div class="card-v">加速品牌心智与点评资产沉淀</div></article><article class="info-card"><div class="card-k">口味适配</div><div class="card-v">保留原版，同时提供广州版汤底</div></article></div></div>
+  <div class="foot"><div>RISK</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide dark">
+  <div class="chrome"><div>MATERIAL EXTENSION</div><div>76 / 79</div></div>
+  <div class="frame text-image"><div><div class="kicker" data-anim>MATERIAL EXTENSION</div><h2 class="h1-zh" data-anim>物料延展建议</h2><p class="copy" data-anim>超级符号 = 简化船只轮廓或编织纹样</p><div class="big-list"><div class="big-item">菜单：必须讲清汤底故事。</div><div class="big-item">碗垫纸：水波线条与小知识。</div><div class="big-item">外卖包装：汤碗热气符号与品牌色块。</div><div class="big-item">社媒头像：船只轮廓或编织纹样。</div></div></div><figure class="photo vertical" style=""><img src="images/material-suggestion-182643.webp" alt="Material suggestion"><figcaption>Material suggestion</figcaption></figure></div>
+  <div class="foot"><div>MATERIAL EXTENSION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero dark">
+  <div class="chrome"><div>CONCLUSION</div><div>77 / 79</div></div>
+  <div class="impact-wrap"><h1 class="impact-title" data-anim>亲民但不粗糙
+地道但不沉重
+怀旧但不堆砌
+异域但能进入日常</h1><p class="impact-copy" data-anim>通过船面文化建立品牌故事；通过板前明档建立产品信任；通过材质与细节建立空间质感；通过围坐和烟火气建立人情温度。</p></div>
+  <div class="foot"><div>CONCLUSION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide light">
+  <div class="chrome"><div>NEXT ACTION</div><div>78 / 79</div></div>
+  <div class="frame"><div class="kicker" data-anim>NEXT ACTION</div><h2 class="h1-zh" data-anim>下一步行动</h2><p class="copy" data-anim>从品牌策略进入设计落地</p><div class="card-grid"><article class="info-card"><div class="card-k">商标注册</div><div class="card-v">核查“文隆船面”第43类，注册“泰珍文隆”</div></article><article class="info-card"><div class="card-k">选址启动</div><div class="card-v">优先天河B1中等商场</div></article><article class="info-card"><div class="card-k">设计启动</div><div class="card-v">空间设计与 VI 设计并行</div></article><article class="info-card"><div class="card-k">供应链</div><div class="card-v">确定汤底配方与香料供应商</div></article></div></div>
+  <div class="foot"><div>NEXT ACTION</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+
+<section class="slide hero light">
+  <div class="chrome"><div>THANK YOU</div><div>79 / 79</div></div>
+  <div class="frame statement-wrap"><h1 class="ending-title" data-anim>谢谢<br><span style="font-family:var(--serif-en)">THANK YOU</span></h1><p class="copy" data-anim>All rights of interpretation belong to Unknown Design</p><div style="position:absolute;right:6vw;bottom:10vh;text-align:right;font-family:var(--mono);letter-spacing:.18em;font-weight:700" data-anim>UNKNOWN DESIGN<br>STUDIO</div></div>
+  <div class="foot"><div>THANK YOU</div><div>UNKNOWN DESIGN STUDIO</div></div>
+</section>
+</div>
+
+<div id="nav"></div>
+
+<script>
+/* =============== WebGL 双背景 ===============
+   深色页：Holographic Dispersion（全息色散 · 钛金暗流）—— 彩虹微扰、鼠标径向涟漪
+   浅色页：Spiral Vortex（旋转涡流 · 银色珍珠）—— domain-warp 流动、无中心
+   修改风格请参考 references/webgl-backgrounds.md
+*/
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS_DARK = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+  float md=length(p-m);
+  float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+  vec2 p0=p;
+  for(float i=1.0;i<4.0;i++){
+    p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+    p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+  }
+  float r=length(p);float ang=atan(p.y,p.x);
+  vec3 a=vec3(0.12,0.12,0.13);
+  vec3 b=vec3(0.03,0.04,0.05);
+  vec3 c=vec3(1.0,1.0,1.0);
+  vec3 d=vec3(0.1,0.2,0.4);
+  vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+  float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+  col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+  float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+  col+=hi*0.08;
+  vec3 base=vec3(0.05,0.05,0.06);
+  col=mix(base,col,0.85);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const FS_LIGHT = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1,0));
+  float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  mat2 m=mat2(0.80,0.60,-0.60,0.80);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;
+  vec2 md=p-m;float dl=length(md);
+  p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;
+  vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));
+  vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),
+              fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));
+  float f=fbm(p*2.2+r*1.5);
+  vec3 silverDark=vec3(0.86,0.85,0.84);
+  vec3 paper=vec3(0.955,0.945,0.925);
+  vec3 col=mix(silverDark,paper,f);
+  float ph=r.x*2.2+u_time*0.35;
+  col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;
+  col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;
+  float hl=smoothstep(0.48,0.92,f);
+  col+=hl*0.06;
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+  return (tSec)=>{
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,1-mouse.y);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+let drawDark=null, drawLight=null, glRAF=0, glT0=Date.now();
+function startGL(){
+  if(window.__lowPowerMode || glRAF) return;
+  if(!drawDark) drawDark=bootGL('bg-dark',FS_DARK);
+  if(!drawLight) drawLight=bootGL('bg-light',FS_LIGHT);
+  glT0=Date.now();
+  function loop(){
+    if(window.__lowPowerMode){glRAF=0;return;}
+    const t=(Date.now()-glT0)/1000;
+    drawDark(t);drawLight(t);
+    glRAF=requestAnimationFrame(loop);
+  }
+  glRAF=requestAnimationFrame(loop);
+}
+function stopGL(){
+  if(glRAF) cancelAnimationFrame(glRAF);
+  glRAF=0;
+}
+startGL();
+addEventListener('ppt-low-power-change', e=>{e.detail.on ? stopGL() : startGL();});
+
+if(window.__deckFitShell){
+  const bootFitShell = () => {
+    if(document.getElementById('stage-frame')) return;
+    const frame = document.createElement('iframe');
+    const stageUrl = new URL(location.href);
+    stageUrl.searchParams.set('deckStage','1');
+    frame.id = 'stage-frame';
+    frame.title = document.title;
+    frame.src = stageUrl.href;
+    frame.setAttribute('allowfullscreen','true');
+    document.body.appendChild(frame);
+    if(window.__setLowPowerMode) window.__setLowPowerMode(true);
+    const focusFrame = () => frame.focus();
+    frame.addEventListener('load', () => requestAnimationFrame(focusFrame));
+    addEventListener('pointerdown', focusFrame, true);
+    addEventListener('keydown', e => {
+      if(!frame.contentWindow) return;
+      frame.contentWindow.dispatchEvent(new KeyboardEvent('keydown',{
+        key:e.key,code:e.code,ctrlKey:e.ctrlKey,shiftKey:e.shiftKey,altKey:e.altKey,metaKey:e.metaKey,bubbles:true,cancelable:true
+      }));
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootFitShell);
+  else bootFitShell();
+}
+
+// =============== 导航（翻页 / 圆点 / 键盘 / 滚轮 / 触屏） ===============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+// 关键：矫正 deck 宽度为 total * 100vw，否则翻页会错位
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  window.__currentSlideIndex = idx;
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  /* 主题切换：优先读 data-theme，其次从 class（light/dark）推断 */
+  const el=slides[idx];
+  const th=el.dataset.theme || (el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));
+  document.body.classList.toggle('light-bg',th==='light');
+  /* 动效：翻页过渡中段触发当前页的入场动画（由 motion-boot 注册） */
+  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+/* =============== ESC 索引视图 =============== */
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(var(--paper-rgb),.6)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)';
+    const wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault();
+    window.__setLowPowerMode(!window.__lowPowerMode);
+    return;
+  }
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
+    if(window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+1);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){
+    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
+      wheelAcc=0;
+    }else{
+      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
+    }
+  }
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+(dx<0?1:-1));
+  }
+},{passive:true});
+
+go(window.__exportSlide || 0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+
+<!-- ============ Motion One 动效引擎（本地优先,CDN 兜底） ============
+     加载策略:先 ./assets/motion.min.js(本地,离线可用),失败 fallback 到 jsDelivr CDN
+     加载完成后挂 window.__playSlide / window.__pipeAdvance,
+     导航脚本会在翻页中段调用 __playSlide(idx),键盘/滚轮/触屏会在翻页前调用 __pipeAdvance()
+     双双失败时会兜底把所有 [data-anim] 设为可见,不让动效破坏阅读
+-->
+<script type="module">
+let motion;
+try {
+  motion = await import('./assets/motion.min.js');
+} catch(e1) {
+  try {
+    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+  } catch(e2) {
+    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
+    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
+    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
+  }
+}
+
+if(motion){
+  const { animate, stagger } = motion;
+  document.body.classList.add('motion-ready');
+  const EASE = [.22, 1, .36, 1];
+  const slides = [...document.querySelectorAll('.slide')];
+  let pipeStep = -1;
+  let lastIdx = -1;
+
+  function resetAnims(slide){
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='';
+      el.style.transform='';
+    });
+  }
+
+  function revealStatic(slide){
+    resetAnims(slide);
+    document.getAnimations?.().forEach(a=>a.cancel());
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='1';
+      el.style.transform='none';
+    });
+  }
+
+  function playSlide(i){
+    const slide = slides[i];
+    if(!slide) return;
+    lastIdx = i;
+    const recipe = slide.dataset.animate || (slide.classList.contains('hero') ? 'hero' : 'cascade');
+
+    if(window.__lowPowerMode){
+      revealStatic(slide);
+      return;
+    }
+
+    if(recipe === 'pipeline'){
+      pipeStep = -1;
+      slide.querySelectorAll('[data-anim]').forEach(el=>{
+        el.style.opacity='0.15';
+        el.style.transform='none';
+      });
+      return;
+    }
+
+    resetAnims(slide);
+    const all = [...slide.querySelectorAll('[data-anim]')];
+    if(!all.length) return;
+
+    if(recipe === 'directional'){
+      const lefts  = all.filter(el=>el.dataset.anim==='left');
+      const divs   = all.filter(el=>el.dataset.anim==='divider');
+      const rights = all.filter(el=>el.dataset.anim==='right');
+      const others = all.filter(el=>!['left','right','divider'].includes(el.dataset.anim));
+      if(others.length) animate(others, {opacity:[0,1], y:[12,0]}, {duration:.6, delay:stagger(.1, {start:.15}), easing:EASE});
+      if(lefts.length)  animate(lefts,  {opacity:[0,1], x:[-24,0]}, {duration:.8, delay:.35, easing:EASE});
+      if(divs.length)   animate(divs,   {opacity:[0,.25]},          {duration:.5, delay:.9});
+      if(rights.length) animate(rights, {opacity:[0,1], x:[24,0]},  {duration:.8, delay:1.0, easing:EASE});
+      return;
+    }
+
+    if(recipe === 'quote'){
+      const lines = all.filter(el=>el.dataset.anim==='line');
+      const others = all.filter(el=>el.dataset.anim!=='line');
+      if(others.length) animate(others, {opacity:[0,1], y:[8,0]},    {duration:.6, delay:stagger(.12, {start:.2}), easing:EASE});
+      if(lines.length)  animate(lines,  {opacity:[.35,1], y:[10,0]}, {duration:.8, delay:stagger(.55, {start:.5}), easing:EASE});
+      return;
+    }
+
+    if(recipe === 'hero'){
+      animate(all, {opacity:[0,1], y:[14,0]}, {duration:.9, delay:stagger(.16, {start:.2}), easing:EASE});
+      return;
+    }
+
+    // default: cascade
+    animate(all, {opacity:[0,1], y:[16,0]}, {duration:.75, delay:stagger(.1, {start:.15}), easing:EASE});
+  }
+
+  function pipeAdvance(){
+    if(window.__lowPowerMode) return false;
+    const slide = slides[lastIdx];
+    if(!slide || slide.dataset.animate !== 'pipeline') return false;
+    const steps  = [...slide.querySelectorAll('[data-anim="step"]')];
+    const arrows = [...slide.querySelectorAll('[data-anim="arrow"]')];
+    if(pipeStep >= steps.length - 1) return false;
+    pipeStep++;
+    animate(steps[pipeStep], {opacity:[0.15,1], y:[8,0]}, {duration:.5, easing:EASE});
+    if(pipeStep > 0 && arrows[pipeStep-1]){
+      animate(arrows[pipeStep-1], {opacity:[0.15,.7]}, {duration:.3, delay:.15});
+    }
+    return true;
+  }
+
+  window.__playSlide = playSlide;
+  window.__pipeAdvance = pipeAdvance;
+
+  // 首屏:go(0) 已跑过(同步),没来得及触发动效 → 这里补一下
+  playSlide(0);
+}
+</script>
+</body>
+</html>
