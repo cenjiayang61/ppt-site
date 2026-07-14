@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小西家作万象城店｜空间软装与品牌物料植入策略</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色(默认:🖋 墨水经典) ============
+       切换主题:从 references/themes.md 复制对应的 :root 块
+       整体替换这几行(--ink / --ink-rgb / --paper / --paper-rgb)
+       其他地方散落的 rgba() 都走 var(--ink-rgb) / var(--paper-rgb),无需逐处改 */
+    --ink:#0a0a0b;
+    --ink-rgb:10,10,11;
+    --paper:#f1efea;
+    --paper-rgb:241,239,234;
+    --paper-tint:#e8e5de;
+    --ink-tint:#18181a;
+
+    /* ============ 字体(跨主题固定) ============ */
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --serif-en:"Playfair Display","Source Serif 4",Georgia,serif;
+    --serif-body-en:"Source Serif 4",Georgia,serif;
+    --serif-zh:"Noto Serif SC",source-han-serif-sc,serif;
+    --sans-zh:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* ============ WebGL 双背景 ============ */
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}
+  canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}
+  body.light-bg canvas#bg-dark{opacity:0}
+  body.low-power canvas.bg{display:none!important}
+
+  /* ============ Deck 容器 + 翻页 ============ */
+  /* width: NSLIDES * 100vw，会在 JS 里动态矫正 */
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink);background:var(--paper)}
+  .slide.dark{color:var(--paper);background:var(--ink)}
+
+  /* 默认页：遮罩较厚，保证文字可读 */
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  /* Hero 页：遮罩大幅降低，让 WebGL 背景明显透出 */
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  /* Hero 页顶底微弱渐隐，保证 chrome/foot 区域可读 */
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+
+  /* ============ Magazine chrome：顶部 meta + 底部 foot ============ */
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+  .chrome .left,.chrome .right{display:flex;gap:2.4em;align-items:center}
+  .chrome .sep{width:40px;height:1px;background:currentColor;opacity:.4}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .foot .title{font-family:var(--serif-zh);font-weight:400;letter-spacing:.05em;text-transform:none;opacity:.75;font-size:13px}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:6px 14px;border:1px solid currentColor;opacity:.85}
+  .rule{width:100%;height:1px;background:currentColor;opacity:.25;margin:3vh 0}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  /* ============ 字体规则 ============
+     · 衬线（Noto Serif SC / Playfair）：大标题、重点金句、数字
+     · 非衬线（Noto Sans SC）：正文描述、body、补充说明
+     · 等宽（IBM Plex Mono）：kicker、meta 小标签、foot 右侧
+  */
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .display{font-family:var(--serif-en);font-weight:700;font-size:11vw;line-height:.92;letter-spacing:-.025em}
+  .display-zh{font-family:var(--serif-zh);font-weight:700;font-size:7.8vw;line-height:1.04;letter-spacing:-.005em}
+  .h1-zh{font-family:var(--serif-zh);font-weight:700;font-size:4.6vw;line-height:1.12;letter-spacing:-.005em}
+  .h2-zh{font-family:var(--serif-zh);font-weight:600;font-size:3.2vw;line-height:1.2;letter-spacing:0}
+  .h3-zh{font-family:var(--serif-zh);font-weight:500;font-size:1.9vw;line-height:1.35}
+  .body-zh{font-family:var(--sans-zh);font-weight:400;font-size:max(15px,1.22vw);line-height:1.75;opacity:.82;letter-spacing:.01em}
+  .body-serif{font-family:var(--serif-zh);font-weight:400;font-size:max(15px,1.3vw);line-height:1.65;opacity:.88}
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.9vw;line-height:1.4;opacity:.85}
+  .meta{font-family:var(--mono);font-size:max(11px,.88vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .big-num{font-family:var(--serif-en);font-weight:800;font-size:10vw;line-height:.85;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .mid-num{font-family:var(--serif-en);font-weight:700;font-size:5.5vw;line-height:.88;letter-spacing:-.02em;font-feature-settings:"tnum"}
+  .ghost{font-family:var(--serif-en);font-weight:900;font-size:34vw;line-height:.8;opacity:.06;letter-spacing:-.04em;position:absolute;font-feature-settings:"tnum"}
+  em{font-style:italic;font-family:var(--serif-en)}
+  .en{font-family:var(--serif-en);font-style:italic;font-weight:500}
+
+  /* ============ 布局工具 ============ */
+  .col{display:flex;flex-direction:column;gap:2.4vh}
+  .row{display:flex;align-items:center;gap:3vw}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4vw 6vw;flex:1;align-content:center;padding:2vh 0}
+  .grid-9{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3vh 4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;flex:1;align-items:center}
+  .split-55{display:grid;grid-template-columns:55fr 45fr;gap:5vw;flex:1;align-items:stretch}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .bottom-left{position:absolute;left:6vw;bottom:9vh;max-width:50vw}
+  .bottom-right{position:absolute;right:6vw;bottom:9vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:6vw;top:6vh;text-align:right}
+
+  /* ============ Stat（数字矩阵） ============ */
+  .stat{display:flex;flex-direction:column;gap:1vh;align-items:flex-start}
+  .stat .n{font-family:var(--serif-en);font-weight:800;font-size:8vw;line-height:.88;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .stat .l{font-family:var(--sans-zh);font-size:max(13px,1.05vw);opacity:.7;margin-top:1vh;font-weight:400;line-height:1.5}
+  .stat .m{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;margin-bottom:.2vh}
+
+  /* ============ Callout（引用框） ============ */
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}
+  .slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout .cite{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .callout .q-big{font-family:var(--serif-zh);font-weight:600;font-size:max(17px,1.6vw);line-height:1.42}
+
+  /* ============ Platform（平台卡） ============ */
+  .plat{display:flex;flex-direction:column;justify-content:flex-end;padding:2vh 0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .plat .name{font-family:var(--serif-zh);font-weight:700;font-size:1.8vw;margin-bottom:.6vh}
+  .plat .nb{font-family:var(--serif-en);font-weight:700;font-size:3.2vw;letter-spacing:-.02em;line-height:1;font-feature-settings:"tnum"}
+  .plat .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-top:.6vh}
+  .plat .fill{font-family:var(--sans-zh);font-weight:300;font-size:2.4vw;opacity:.28;letter-spacing:-.01em;line-height:1}
+
+  /* ============ Rowline（表格行） ============ */
+  .rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:2vw;padding:2.2vh 0;border-top:1px solid currentColor;align-items:center;border-color:rgba(127,127,127,.25)}
+  .rowline:last-child{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.25)}
+  .rowline .k{font-family:var(--serif-zh);font-weight:700;font-size:1.7vw}
+  .rowline .v{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.2vw);opacity:.85;line-height:1.55}
+  .rowline .m{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;justify-self:end}
+
+  /* ============ Pillar（支柱卡片） ============ */
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+
+  /* ============ Signature / Highlight ============ */
+  .sign{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:2vw;opacity:.7}
+  .hi{position:relative;display:inline}
+  .slide.dark .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--paper-rgb),.15);z-index:-1}
+  .slide.light .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--ink-rgb),.08);z-index:-1}
+
+  /* ============ Icons（Lucide via CDN） ============ */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+  .ico-lg{width:2.6vw;height:2.6vw;stroke-width:1.2;display:inline-block}
+  .ico-md{width:1.8vw;height:1.8vw;stroke-width:1.3;display:inline-block;vertical-align:-.4em}
+  .ico-sm{width:1.1vw;height:1.1vw;stroke-width:1.4;display:inline-block;vertical-align:-.15em;opacity:.7}
+
+  /* ============ 图片占位（虚线框，提示设计师位置） ============ */
+  .img-slot{border:1.5px dashed rgba(127,127,127,.4);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1vh;padding:2vh 2vw;font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;opacity:.55;position:relative;aspect-ratio:16/9;width:100%;max-height:56vh;margin-inline:auto;box-sizing:border-box}
+  .img-slot::before{content:"";position:absolute;inset:8px;border:1px solid currentColor;opacity:.2}
+  .img-slot .plus{font-size:2vw;font-weight:300;opacity:.5;letter-spacing:0}
+  .img-slot .label{position:relative;z-index:2;text-align:center}
+  .img-slot.r-4x3{aspect-ratio:4/3}
+  .img-slot.r-3x2{aspect-ratio:3/2}
+  .img-slot.r-1x1{aspect-ratio:1/1}
+
+  /* ============ 图片实填框（关键：固定高度 + 只裁底部） ============
+     重要约束：高度用内联 height:Nvh 精确控制，不要用 aspect-ratio（会撑破布局）
+     object-position:top center 保证严禁裁剪顶部和左右，只裁剪底部
+  */
+  .frame-img{overflow:hidden;position:relative;background:rgba(0,0,0,.04);box-sizing:border-box;width:100%;border-radius:4px}
+  .slide.dark .frame-img{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+  .frame-img > img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
+  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
+  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
+  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
+  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
+  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
+  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
+  .frame-img.h-16{height:16vh}
+  .frame-img.h-18{height:18vh}
+  .frame-img.h-22{height:22vh}
+  .frame-img.h-26{height:26vh}
+  .frame-img.h-28{height:28vh}
+  .frame-cap{display:flex;justify-content:space-between;align-items:baseline;gap:1vw;margin-top:.8vh;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.72}
+  .frame-cap .pf{font-family:var(--serif-zh);font-weight:600;font-size:max(13px,1vw);letter-spacing:.04em;text-transform:none;opacity:.94}
+  .frame-cap .nb{font-family:var(--serif-en);font-style:italic;font-size:max(15px,1.2vw);letter-spacing:.02em;text-transform:none;opacity:.88}
+  .frame-cap .idx{font-family:var(--mono);opacity:.5}
+  figure.tile{display:flex;flex-direction:column;margin:0;min-width:0}
+  figure.tile > .frame-img{flex:0 0 auto}
+
+  /* ============ 导航 ============ */
+  #nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+  #nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+  #nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+  body.light-bg #nav{background:rgba(255,255,255,.25)}
+  body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}
+  body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}
+  #hint{position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa}
+  body.low-power #hint{opacity:.72;color:var(--paper);mix-blend-mode:normal}
+  body.light-bg.low-power #hint{color:var(--ink)}
+
+  /* ============================================================
+     ============ LAYOUTS API · 面向 agent 的类（v2）============
+     所有 layouts.md 中的骨架都基于下面这套命名。
+     如果你在 layouts.md 里看到某个类，它必须在下面有定义。
+     ============================================================ */
+
+  /* ---------- .frame：每页主内容容器 ---------- */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  /* 当 .frame 同时加了 grid 类时，grid 的 display:grid 覆盖 flex */
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-3-3,
+  .frame.grid-6{display:grid}
+
+  /* ---------- 标题层级（API 名称，衬线为主） ---------- */
+  .h-hero{
+    font-family:var(--serif-zh);
+    font-weight:900;
+    font-size:10vw;
+    line-height:.96;
+    letter-spacing:-.02em;
+  }
+  .h-xl{
+    font-family:var(--serif-zh);
+    font-weight:700;
+    font-size:6.2vw;
+    line-height:1.08;
+    letter-spacing:-.01em;
+  }
+  .h-sub{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:3.1vw;
+    line-height:1.25;
+    letter-spacing:0;
+    opacity:.7;
+  }
+  .h-md{
+    font-family:var(--serif-zh);
+    font-weight:600;
+    font-size:2.3vw;
+    line-height:1.3;
+  }
+  /* 英文标题专用（Playfair 衬线） */
+  .h-hero-en,.h-xl-en{font-family:var(--serif-en);letter-spacing:-.025em}
+
+  /* ---------- lead 引语 ---------- */
+  .lead{
+    font-family:var(--serif-zh);
+    font-weight:400;
+    font-size:1.75vw;
+    line-height:1.5;
+    opacity:.86;
+  }
+
+  /* ---------- meta-row 底部元数据 ---------- */
+  .meta-row{
+    display:flex;
+    gap:1.2em;
+    align-items:baseline;
+    flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:max(12px,.92vw);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- stat-card（数据大字报用） ---------- */
+  .stat-card{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    align-items:flex-start;
+    padding-top:1.6vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.3);
+  }
+  .stat-card .stat-label{
+    font-family:var(--mono);
+    font-size:max(10px,.78vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
+  .stat-card .stat-nb{
+    font-family:var(--serif-en);
+    font-weight:800;
+    font-size:5.8vw;
+    line-height:.9;
+    letter-spacing:-.03em;
+    font-feature-settings:"tnum";
+    margin-top:.4vh;
+  }
+  .stat-card .stat-nb .stat-unit{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:.38em;
+    letter-spacing:0;
+    opacity:.72;
+    margin-left:.14em;
+  }
+  .stat-card .stat-note{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(13px,1.05vw);
+    line-height:1.5;
+    opacity:.72;
+    margin-top:.6vh;
+  }
+  /* 当 stat-card 用于 grid-4（2x2），数字适度放大；若页面有标题+引文在上方，可内联 style 覆盖为更小值 */
+  .grid-4 .stat-card .stat-nb{font-size:5vw}
+  /* 当只有 3 个，字也可以稍大 */
+  .grid-3 .stat-card .stat-nb{font-size:6.8vw}
+
+  /* ---------- pipeline（流水线） ---------- */
+  .pipeline-section{
+    margin-top:4.4vh;
+    padding-top:2.8vh;
+    border-top:1px dashed rgba(127,127,127,.32);
+  }
+  .pipeline-section:first-of-type{
+    border-top:0;
+    padding-top:0;
+    margin-top:3vh;
+  }
+  .pipeline-label{
+    font-family:var(--mono);
+    font-size:max(11px,.85vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.62;
+    margin-bottom:2.2vh;
+  }
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1.2vw;
+  }
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .step{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    padding-top:1.4vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.35);
+  }
+  .step-nb{
+    font-family:var(--serif-en);
+    font-style:italic;
+    font-weight:500;
+    font-size:1.15vw;
+    opacity:.45;
+  }
+  .step-title{
+    font-family:var(--sans-zh);
+    font-weight:700;
+    font-size:1.55vw;
+    letter-spacing:.01em;
+    line-height:1.2;
+  }
+  .step-desc{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(12px,.95vw);
+    line-height:1.45;
+    opacity:.72;
+  }
+
+  /* ---------- 网格（layouts.md 所用） ---------- */
+  /* 这些类独立挂到任何容器上都能生效，不依赖 .frame 复合选择器 */
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-auto-rows:minmax(0,1fr);
+    gap:2.4vh 2vw;
+  }
+  /* grid-6 已在旧样式里定义为 3x2，这里仅补 align */
+
+  /* ---------- 图片 frame-img（layouts.md 主命名） ---------- */
+  /* 在旧样式里已定义，这里补 img-cap 命名别名与增强 */
+  figure.frame-img{margin:0;display:flex;flex-direction:column;min-width:0}
+  .img-cap{
+    display:block;
+    margin-top:.8vh;
+    font-family:var(--mono);
+    font-size:max(10px,.8vw);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+  /* callout src 命名别名 */
+  .callout-src{
+    display:block;
+    margin-top:1.6vh;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- chrome & foot 补位（layouts.md 简单写法） ---------- */
+  .chrome{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+
+  /* ============ 动效系统(Motion One 驱动) ============
+     所有 [data-anim] 元素默认隐藏,进入页面时由 JS 逐个揭示。
+     - cascade(默认):按 DOM 顺序 stagger 120ms 淡入 + y:16→0
+     - hero(hero 页自动):慢一点的 stagger 180ms
+     - quote(含 [data-anim="line"]):逐行 600ms 淡入
+     - directional(含 [data-anim="left|right"]):左→分隔线→右
+     - pipeline(data-animate="pipeline"):Space/→ 手动推进
+     Motion One 没加载成功时(CDN 断 + 本地丢),所有 [data-anim] 会兜底显示。
+  */
+  [data-anim]{opacity:1}
+  body.motion-ready [data-anim]{opacity:0}
+  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
+  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
+  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
+  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
+  body.low-power #deck{transition:none!important}
+  body.low-power *,
+  body.low-power *::before,
+  body.low-power *::after{animation:none!important;transition:none!important}
+  body.low-power.motion-ready [data-anim],
+  body.low-power [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ---------- 响应式降级 ---------- */
+  @media (max-width:900px){
+    .display{font-size:16vw}
+    .display-zh{font-size:12vw}
+    .h1-zh{font-size:7vw}
+    .h-hero{font-size:14vw}
+    .h-xl{font-size:9vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4{grid-template-columns:1fr}
+  }
+</style>
+
+<style>
+  .slide .callout h3 { margin:0 0 14px; font: 500 28px/1.15 var(--serif); }
+  .slide .pipeline div b { font-family: var(--serif); font-size: 26px; font-weight: 500; }
+  .slide .pipeline div span { display:block; margin-top:10px; font-size:18px; line-height:1.7; opacity:.82; }
+  .slide .tag { margin-right:10px; margin-bottom:10px; }
+  .slide .frame-img { background:transparent !important; border-color:transparent !important; }
+  .slide img.frame-img { display:block; width:100%; height:auto; aspect-ratio:auto !important; max-height:58vh; object-fit:contain; object-position:center; }
+  .slide img.natural-img { object-fit:contain !important; background:transparent; }
+  .slide img.hero-material-img { max-height:68vh; max-width:100%; margin:auto; }
+  .slide img.product-large-img { max-height:70vh; max-width:100%; margin:auto; }
+  .slide img.single-material-img { max-height:68vh; max-width:100%; margin:auto; }
+  .slide img.journal-img { max-height:56vh; max-width:100%; margin:auto; }
+  .slide img.product-card-img { max-height:70vh; max-width:100%; margin:auto; }
+  .slide img.zine-large-img { max-height:68vh; max-width:100%; margin:auto; }
+  .slide > .grid-3-3 img.frame-img { max-height:41vh; }
+  .slide .body-zh { text-align:left; margin-top:1.6vh; }
+  .slide .lead { margin-top:0; margin-bottom:2.8vh; }
+  .slide .h-xl { font-size:min(5.55vw,9.2vh); line-height:1.06; }
+  .slide .h-xl, .slide .h-hero { margin:0 0 4.6vh; }
+  .slide .title-spaced { margin-bottom:5.4vh !important; }
+  .slide .compact-title { font-size:min(5.8vw,9.8vh); line-height:1.02; margin-bottom:5vh !important; }
+  .slide .page4-title { font-size:min(5.2vw,9vh); line-height:1.06; }
+  .slide .cover-title { font-size:min(6.4vw,10.2vh); line-height:.98; }
+  .slide .closing-title { font-size:min(6.2vw,10vh); line-height:1; }
+  .slide [data-anim] { opacity:1 !important; transform:none !important; }
+  .page-no { position:absolute; right:6vw; top:5.8vh; z-index:5; font-family:var(--mono); font-size:12px; letter-spacing:.12em; opacity:.58; }
+  .image-center { display:flex; align-items:center; justify-content:center; min-height:58vh; }
+  .journal-center { min-height:48vh; }
+  .text-stack { max-width:96%; }
+  .split-plain { display:grid; grid-template-columns:1fr 1fr; gap:7vw; margin-top:1.5vh; }
+  .split-plain > div { border-top:1px solid rgba(var(--ink-rgb),.22); padding-top:3vh; }
+  .split-plain h3 { font:500 44px/1 var(--serif); margin:0 0 3vh; }
+  .caption-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:2vw; margin-top:5vh; align-items:center; }
+  .caption-strip img { max-height:22vh; width:auto; max-width:100%; justify-self:center; }
+  .narrative-steps { display:grid; grid-template-columns:1fr; gap:0; margin-top:5.4vh; border-top:1px solid rgba(var(--paper-rgb),.22); }
+  .narrative-steps > div { display:grid; grid-template-columns:2.2fr 5fr; gap:4vw; padding:2.2vh 0; border-bottom:1px solid rgba(var(--paper-rgb),.18); }
+  .narrative-steps b { font:500 38px/1.1 var(--serif); }
+  .narrative-steps span { font-size:20px; line-height:1.7; opacity:.84; }
+  .anchor-list { margin-top:2vh; border-top:1px solid rgba(var(--ink-rgb),.2); }
+  .anchor-list > div { display:grid; grid-template-columns:1.1fr 5.5fr; gap:4vw; padding:2.6vh 0; border-bottom:1px solid rgba(var(--ink-rgb),.14); }
+  .anchor-list b { font:500 52px/1 var(--serif); }
+  .anchor-list span { font-size:22px; line-height:1.75; opacity:.78; }
+  .portrait-materials { display:grid; grid-template-columns:repeat(3,1fr); gap:2.6vw; margin-top:1vh; align-items:center; }
+  .portrait-slot { height:50vh; display:flex; align-items:center; justify-content:center; background:transparent; border-radius:0; overflow:hidden; }
+  .portrait-slot img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+  .slide.dark .portrait-slot { background:transparent; }
+  .toc-title { max-width:88%; margin-bottom:5.2vh !important; }
+  .toc-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:6vw; row-gap:0; border-top:1px solid rgba(var(--ink-rgb),.22); }
+  .toc-grid > div { padding:2.6vh 0; border-bottom:1px solid rgba(var(--ink-rgb),.16); }
+  .toc-grid b { display:block; font:500 28px/1.2 var(--serif); margin-bottom:1.1vh; }
+  .toc-grid span { display:block; font-size:18px; line-height:1.7; opacity:.72; }
+  .thanks-page { justify-content:center; }
+  .thanks-page > div { max-width:72vw; }
+  .thanks-title { font-size:min(9vw,15vh) !important; line-height:1; margin-bottom:4vh !important; }
+</style>
+
+
+<!-- GitHub lightweight build: MacBook Pro 16-inch / 16:10 viewport tuning -->
+<style id="mbp16-github-opt">
+  @supports (height:100dvh) {
+    html,body,#deck,.slide{height:100dvh}
+    canvas.bg{height:100dvh}
+  }
+  @media (min-aspect-ratio:15/10) and (max-aspect-ratio:17/10) {
+    .slide{padding-top:5.4vh;padding-bottom:8.8vh}
+    #nav{bottom:1.45vh}
+    #hint{bottom:1.35vh}
+  }
+</style>
+</head>
+<body>
+<script>
+  (function(){
+    const KEY = 'guizang-ppt-low-power';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stored = localStorage.getItem(KEY);
+    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
+    function updateHint(){
+      const hint = document.getElementById('hint');
+      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
+    }
+    window.__setLowPowerMode = function(on, opts={}){
+      window.__lowPowerMode = !!on;
+      document.body.classList.toggle('low-power', window.__lowPowerMode);
+      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
+      if(window.__lowPowerMode && document.getAnimations){
+        document.getAnimations().forEach(a=>a.cancel());
+      }
+      updateHint();
+      dispatchEvent(new CustomEvent('ppt-low-power-change', {detail:{on:window.__lowPowerMode}}));
+      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
+    };
+    document.body.classList.toggle('low-power', window.__lowPowerMode);
+    addEventListener('DOMContentLoaded', updateHint, {once:true});
+  })();
+</script>
+
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+
+<div id="deck">
+
+<!-- ============================================================
+     SLIDES 插入区 · 在此处填充所有 <section class="slide ..."> 页面
+     每页模板参考 references/page-patterns.md
+     页面组件参考 references/components.md
+     ============================================================ -->
+
+
+<section class="slide hero dark" data-label="封面">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">小西家作万象城店</p>
+      <h1 data-anim="title" class="h-xl cover-title">空间软装<br>与品牌物料<br>植入策略</h1>
+      <p data-anim="lead" class="lead">把一块蛋糕，做成可以带回家的东方生活静物。</p>
+      <div class="tags"><span class="tag">东方花事</span><span class="tag">手作成礼</span><span class="tag">客厅式陈列</span></div>
+    </div>
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/01-product-card.webp" alt=""></div>
+  </div>
+<div class="page-no">01 / 28</div></section>
+
+
+<section class="slide light toc-page" data-label="目录框架">
+  <p data-anim="kicker" class="kicker">目录框架结构</p>
+  <h2 data-anim="title" class="h-xl toc-title">从品牌母题，到空间物料的完整论述层级。</h2>
+  <div class="toc-grid">
+    <div data-anim="step"><b>01 项目背景与品牌母题</b><span>新店转向 / 品牌母题 / 家与作</span></div>
+    <div data-anim="step"><b>02 叙事体系与感官锚点</b><span>花事入糕 / 奶油成画 / 手作成礼 / 客厅成境 / 日常成陪伴</span></div>
+    <div data-anim="step"><b>03 产品与平面视觉语言</b><span>东方油画蛋糕 / 东方花事 / 纸感版式 / 产品作品标签</span></div>
+    <div data-anim="step"><b>04 品牌物料系统</b><span>小刊物 / 开业随礼小卡 / 花草明信片 / 生日礼盒书签</span></div>
+    <div data-anim="step"><b>05 空间软装与品牌植入</b><span>墙面文字 / 陈列柜 / 深木桌面 / 花器植物</span></div>
+    <div data-anim="step"><b>06 执行优先级与最终落点</b><span>入口 / 陈列 / 带走 / 阶段执行 / 品牌收束</span></div>
+  </div>
+<div class="page-no">02 / 28</div></section>
+
+
+<section class="slide light" data-label="项目背景">
+  <div class="grid-2-6-6">
+    <div>
+      <p data-anim="kicker" class="kicker">从好看进入有叙事</p>
+      <h2 data-anim="title" class="h-xl">新店不是一次空间更新，而是一次品牌语境的转向。</h2>
+      <p data-anim="body" class="body-zh">目前小西家作已经具备东方、高级、油画、礼赠、温柔、长情、剧场感等气质关键词，但这些词仍然偏向感受描述，需要一个能够统领产品、空间、物料、陈列和文案的品牌母题。</p>
+      <p data-anim="body" class="body-zh">万象城店的核心任务，是让顾客在门店中感受到：产品不是被售卖的商品，而是被温柔呈现、可以带回家的作品与心意。</p>
+    </div>
+    <div class="grid-2-6-6">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/04-glass-display.webp" alt="">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/02-dark-table-materials.webp" alt="">
+    </div>
+  </div>
+<div class="page-no">03 / 28</div></section>
+
+
+<section class="slide dark brand-mother-page" data-label="品牌母题">
+  <div class="grid-2-6-6">
+    <div class="text-stack">
+      <p data-anim="kicker" class="kicker">品牌母题</p>
+      <h2 data-anim="title" class="h-xl compact-title">可以带回家的<br>东方生活静物</h2>
+      <p data-anim="lead" class="lead">这句话同时解释产品、空间、物料、陈列和文案。</p>
+      <p data-anim="body" class="body-zh">它把原有“时光温软，长情陪伴”的气质，落到具体可感知的物件与场景中。蛋糕不只是甜品，而是日常关系中的一份温柔作品；门店也不只是零售空间，而是一间可以停留、观看、选择、带走心意的东方甜点客厅。</p>
+    </div>
+    <div class="image-center"><img data-anim="figure" class="frame-img natural-img hero-material-img" src="images/06-refined-display.webp" alt=""></div>
+  </div>
+<div class="page-no">04 / 28</div></section>
+
+
+<section class="slide light" data-label="家与作">
+  <p data-anim="kicker" class="kicker">核心叙事拆解</p>
+  <h2 data-anim="title" class="h-xl page4-title title-spaced">家与作：情感温度与审美分寸</h2>
+  <div class="split-plain">
+    <div>
+      <h3>家</h3>
+      <p data-anim="body" class="body-zh">不是家庭感的土味，而是客厅、陪伴、礼物、心意，以及日常里的仪式。</p>
+      <p data-anim="body" class="body-zh">它让蛋糕从一次消费，变成可以被带回关系里的温柔片段。</p>
+    </div>
+    <div>
+      <h3>作</h3>
+      <p data-anim="body" class="body-zh">不是普通烘焙，而是手作、笔触、作品、时间与审美。</p>
+      <p data-anim="body" class="body-zh">它让产品从“好吃”，进入“被创作、被观看、被珍藏”的语境。</p>
+    </div>
+  </div>
+<div class="page-no">05 / 28</div></section>
+
+
+<section class="slide dark" data-label="论述体系">
+  <p data-anim="kicker" class="kicker">论述体系总览</p>
+  <h2 data-anim="title" class="h-xl">从产品灵感，到空间观看，再到礼赠带走。</h2>
+  <div class="narrative-steps">
+    <div data-anim="step"><b>花事入糕</b><span>花卉、季节、东方风物成为产品的感官来源。</span></div>
+    <div data-anim="step"><b>奶油成画</b><span>蛋糕表面像油画笔触，是手作的直接证据。</span></div>
+    <div data-anim="step"><b>手作成礼</b><span>用小卡、书签、随礼纸品把产品转译成心意。</span></div>
+    <div data-anim="step"><b>客厅成境</b><span>陈列柜、深木桌、低照度，形成可停留的观看场。</span></div>
+    <div data-anim="step"><b>日常成陪伴</b><span>把生日、开业、节气与日常关系纳入品牌语言。</span></div>
+  </div>
+<div class="page-no">06 / 28</div></section>
+
+
+<section class="slide light" data-label="感官锚点">
+  <p data-anim="kicker" class="kicker">五个感官锚点</p>
+  <h2 data-anim="title" class="h-xl title-spaced">把抽象调性，变成可被设计、可被陈列、可被拍摄的物件。</h2>
+  <div class="anchor-list">
+    <div data-anim="step"><b>花</b><span>东方花事、季节植物、植物图谱，是产品和纸品的灵感入口。</span></div>
+    <div data-anim="step"><b>笔触</b><span>奶油纹理、油画质感、手作痕迹，让蛋糕成为可观看的作品。</span></div>
+    <div data-anim="step"><b>纸</b><span>艺术印刷纸、书签、小卡、期刊，把产品转译成可以被收藏的心意。</span></div>
+    <div data-anim="step"><b>光</b><span>低照度、暖光和暗场留白，让物件被认真看见。</span></div>
+    <div data-anim="step"><b>器</b><span>花器、托盘、陈列柜、深木桌面，建立东方客厅的观看秩序。</span></div>
+  </div>
+<div class="page-no">07 / 28</div></section>
+
+
+<section class="slide dark" data-label="奶油成画">
+  <div class="grid-2-7-5">
+    <div class="image-center"><img data-anim="figure" class="frame-img natural-img product-large-img" src="images/07-oil-painting-cake.webp" alt=""></div>
+    <div>
+      <p data-anim="kicker" class="kicker">奶油成画</p>
+      <h2 data-anim="title" class="h-xl title-spaced">让产品表面成为品牌最直接的视觉语言。</h2>
+      <p data-anim="body" class="body-zh">东方油画蛋糕不是单一新品，而是品牌转型的入口：它把“手作”从工艺说明，变成顾客一眼可以识别的笔触、色层与时间感。</p>
+      <p data-anim="body" class="body-zh">后续平面、陈列、文案都可以围绕“像一幅可以食用的静物画”展开。</p>
+    </div>
+  </div>
+<div class="page-no">08 / 28</div></section>
+
+
+<section class="slide light" data-label="东方花事">
+  <p data-anim="kicker" class="kicker">东方花事</p>
+  <h2 data-anim="title" class="h-xl">花卉不是装饰，而是产品、纸品与空间共同的灵感档案。</h2>
+  <div class="grid-3-3">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/08-floral-analysis.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/09-botanical-atlas.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/10-botanical-material.webp" alt="">
+  </div>
+<div class="page-no">09 / 28</div></section>
+
+
+<section class="slide dark" data-label="手作成礼">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">手作成礼</p>
+      <h2 data-anim="title" class="h-xl title-spaced">让小卡、书签与随礼纸品，替产品说完那句温柔的话。</h2>
+      <p data-anim="body" class="body-zh">物料不只承担信息说明，也要承担“礼”的情绪。它应该像被认真挑选后夹在蛋糕旁边的一张纸，轻、薄、克制，却能让顾客感到这份心意被完成了。</p>
+      <p data-anim="body" class="body-zh">开业赠礼、生日礼盒、季节限定，都可以用同一套纸品系统承接。</p>
+    </div>
+    <div class="image-center"><img data-anim="figure" class="frame-img natural-img single-material-img" src="images/13-opening-card.webp" alt=""></div>
+  </div>
+<div class="page-no">10 / 28</div></section>
+
+
+<section class="slide light" data-label="客厅成境">
+  <div class="grid-2-6-6">
+    <div>
+      <p data-anim="kicker" class="kicker">客厅成境</p>
+      <h2 data-anim="title" class="h-xl">陈列柜不是货架，而是甜点与纸品的收藏柜。</h2>
+      <p data-anim="body" class="body-zh">空间可以借鉴客厅式陈列：少量产品、花器、纸品、框画与暗场留白共同出现。产品不被堆满，而是被留出观看距离。</p>
+      <p data-anim="body" class="body-zh">这一点能让小西家作从烘焙店的售卖逻辑，过渡到生活方式品牌的停留逻辑。</p>
+    </div>
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/04-glass-display.webp" alt=""></div>
+  </div>
+<div class="page-no">11 / 28</div></section>
+
+
+<section class="slide dark" data-label="柔光观看">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">柔光观看</p>
+      <h2 data-anim="title" class="h-xl">低照度不是昏暗，而是让物件被认真看见。</h2>
+      <p data-anim="body" class="body-zh">深木桌、暖光、暗场、少量产品与留白，可以把甜点从“陈列商品”转译成“桌面静物”。</p>
+      <p data-anim="body" class="body-zh">画面中不需要很多蛋糕，反而需要足够的安静，让纸、花、器和蛋糕形成关系。</p>
+    </div>
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/02-dark-table-materials.webp" alt=""></div>
+  </div>
+<div class="page-no">12 / 28</div></section>
+
+
+<section class="slide light" data-label="平面语言">
+  <p data-anim="kicker" class="kicker">平面视觉语言</p>
+  <h2 data-anim="title" class="h-xl title-spaced">留白、纸感、细字、局部花卉，构成小西家作的新物料语气。</h2>
+  <div class="grid-2-6-6">
+    <div data-anim="card" class="callout">
+      <h3>版式原则</h3>
+      <p data-anim="body" class="body-zh">文字少而准，像手记、菜单、花事笔记；页面更闲散，不做信息堆叠。</p>
+      <p data-anim="body" class="body-zh">高级感来自纸张、比例、装订、低饱和色与空白，而不是过度手工拼贴。</p>
+    </div>
+    <div class="image-center journal-center"><img data-anim="figure" class="frame-img natural-img journal-img" src="images/18-journal-page.webp" alt=""></div>
+  </div>
+<div class="page-no">13 / 28</div></section>
+
+
+<section class="slide dark" data-label="花卉笔触">
+  <p data-anim="kicker" class="kicker">花卉笔触图谱</p>
+  <h2 data-anim="title" class="h-xl">把新品开发、包装图案与文案灵感放在同一张图谱里。</h2>
+  <div class="grid-3-3">
+    <img data-anim="figure" class="frame-img r-16x10" src="images/08-floral-analysis.webp" alt="">
+    <img data-anim="figure" class="frame-img r-16x10" src="images/19-flower-archive.webp" alt="">
+    <img data-anim="figure" class="frame-img r-16x10" src="images/10-botanical-material.webp" alt="">
+  </div>
+<div class="page-no">14 / 28</div></section>
+
+
+<section class="slide light" data-label="产品标签">
+  <div class="grid-2-7-5">
+    <div class="image-center"><img data-anim="figure" class="frame-img natural-img product-card-img" src="images/01-product-card.webp" alt=""></div>
+    <div>
+      <p data-anim="kicker" class="kicker">作品标签</p>
+      <h2 data-anim="title" class="h-xl title-spaced">产品小卡要像艺术印刷纸，安静地放在产品侧方。</h2>
+      <p data-anim="body" class="body-zh">小卡不需要解释太多，只需说明作品名、花卉灵感、口味结构与一句短句。呈现方式应靠近“展签”，而不是促销牌。</p>
+      <p data-anim="body" class="body-zh">建议使用厚质艺术纸、微纹理纸、压凹或局部专色；文字以窄栏排布，保持小而精确。</p>
+    </div>
+  </div>
+<div class="page-no">15 / 28</div></section>
+
+
+<section class="slide dark" data-label="生活版式">
+  <p data-anim="kicker" class="kicker">生活场景版式</p>
+  <h2 data-anim="title" class="h-xl">产品与物料一起出现，但画面要少、稳、准。</h2>
+  <div class="grid-3-3">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/03-birthday-bookmark.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/15-cake-box-01.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/16-cake-box-02.webp" alt="">
+  </div>
+<div class="page-no">16 / 28</div></section>
+
+
+<section class="slide light" data-label="小刊物">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">品牌刊物</p>
+      <h2 data-anim="title" class="h-xl title-spaced">《小西花事》可以成为新店的核心内容容器。</h2>
+      <p data-anim="body" class="body-zh">它不需要做成密集杂志，而更像一本闲散手记：一页花卉灵感，一页产品笔触，一页生日礼物，一页空间片段。</p>
+      <p data-anim="body" class="body-zh">刊物承担品牌调性统一的功能，也可以作为开业、节气、新品、会员礼的长期内容模板。</p>
+    </div>
+    <div class="image-center"><img data-anim="figure" class="frame-img natural-img zine-large-img" src="images/22-kloomba-zine.webp" alt=""></div>
+  </div>
+<div class="page-no">17 / 28</div></section>
+
+
+<section class="slide dark" data-label="开业小卡">
+  <p data-anim="kicker" class="kicker">新店开业随礼小卡</p>
+  <h2 data-anim="title" class="h-xl">一张卡完成欢迎、祝福与品牌第一印象。</h2>
+  <div class="grid-2-6-6">
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/13-opening-card.webp" alt=""></div>
+    <div data-anim="card" class="callout">
+      <h3>内容方向</h3>
+      <p data-anim="body" class="body-zh">“今日花信”“万象城店限定”“把一份花事带回家”等短句，可以让开业动作从促销转为礼赠。</p>
+      <p data-anim="body" class="body-zh">卡片可与试吃、限定甜品、花枝或包装丝带共同出现，形成可拍摄、可带走的记忆点。</p>
+    </div>
+  </div>
+<div class="page-no">18 / 28</div></section>
+
+
+<section class="slide light" data-label="花草明信片">
+  <p data-anim="kicker" class="kicker">花草明信片系列</p>
+  <h2 data-anim="title" class="h-xl title-spaced">把每一款蛋糕背后的花与季节，做成可以收藏的小纸片。</h2>
+  <div class="portrait-materials">
+    <div class="portrait-slot"><img src="images/11-watercolor-postcards.webp" alt=""></div>
+    <div class="portrait-slot"><img src="images/12-watercolor-card.webp" alt=""></div>
+    <div class="portrait-slot"><img src="images/09-botanical-atlas.webp" alt=""></div>
+  </div>
+<div class="page-no">19 / 28</div></section>
+
+
+<section class="slide dark" data-label="生日书签">
+  <div class="grid-2-6-6">
+    <div>
+      <p data-anim="kicker" class="kicker">生日蛋糕礼盒随礼书签</p>
+      <h2 data-anim="title" class="h-xl">让生日祝福从包装里被轻轻抽出来。</h2>
+      <p data-anim="body" class="body-zh">书签比普通卡片更有“可保存”的属性。它可以写生日花语、口味说明、祝福短句，也可以做成不同月份或不同花卉系列。</p>
+      <p data-anim="body" class="body-zh">插入礼盒、夹在菜单、挂在丝带上，都能让产品多一层“被赠予”的仪式感。</p>
+    </div>
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/03-birthday-bookmark.webp" alt=""></div>
+  </div>
+<div class="page-no">20 / 28</div></section>
+
+
+<section class="slide light" data-label="墙面信息">
+  <div class="grid-2-6-6">
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/20-wall-framed-info.webp" alt=""></div>
+    <div>
+      <p data-anim="kicker" class="kicker">墙上挂画与文字信息</p>
+      <h2 data-anim="title" class="h-xl">墙面不做口号，而做一组可以被阅读的品牌注脚。</h2>
+      <p data-anim="body" class="body-zh">可采用框画、展签、窄幅文字与花卉图谱的组合。内容围绕“花事、笔触、家作、礼赠”展开，不直接解释品牌升级，而是让顾客在停留时自然读到。</p>
+      <p data-anim="body" class="body-zh">文字宜短、疏、克制，像作品说明或小型展览说明。</p>
+    </div>
+  </div>
+<div class="page-no">21 / 28</div></section>
+
+
+<section class="slide dark" data-label="收藏柜">
+  <p data-anim="kicker" class="kicker">陈列柜策略</p>
+  <h2 data-anim="title" class="h-xl">用少量产品、纸品和器物形成“被收藏”的状态。</h2>
+  <div class="grid-3-3">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/04-glass-display.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/05-shelf-display.webp" alt="">
+    <img data-anim="figure" class="frame-img r-3x4" src="images/06-refined-display.webp" alt="">
+  </div>
+<div class="page-no">22 / 28</div></section>
+
+
+<section class="slide light" data-label="深木桌">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">深木桌与低照度桌面</p>
+      <h2 data-anim="title" class="h-xl">桌面要像一处小型静物台，而不是产品堆叠区。</h2>
+      <p data-anim="body" class="body-zh">推荐组合为：一个主产品、一张产品小卡、一件器物、一枝植物或一张纸品。通过低光、深木、玻璃或陶瓷，让材质层次成为高级感来源。</p>
+      <p data-anim="body" class="body-zh">这种桌面适合拍摄开业视觉、会员礼、生日礼盒与社交媒体内容。</p>
+    </div>
+    <div class="grid-2-6-6">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/02-dark-table-materials.webp" alt="">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/24-menu-reference.webp" alt="">
+    </div>
+  </div>
+<div class="page-no">23 / 28</div></section>
+
+
+<section class="slide dark" data-label="花器植物">
+  <p data-anim="kicker" class="kicker">花器、植物与东方花事</p>
+  <h2 data-anim="title" class="h-xl">植物不做满铺装饰，只在关键节点成为叙事线索。</h2>
+  <div class="grid-2-6-6">
+    <div data-anim="card" class="callout">
+      <h3>使用原则</h3>
+      <p data-anim="body" class="body-zh">花器偏低、枝叶偏疏、色彩偏柔，和蛋糕色系形成呼应。植物用于连接“东方花事”和“生活静物”，而不是制造花店感。</p>
+    </div>
+    <div class="grid-2-6-6">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/25-tray-flower-reference.webp" alt="">
+      <img data-anim="figure" class="frame-img r-3x4" src="images/10-botanical-material.webp" alt="">
+    </div>
+  </div>
+<div class="page-no">24 / 28</div></section>
+
+
+<section class="slide light" data-label="整合方式">
+  <p data-anim="kicker" class="kicker">软装与物料整合方式</p>
+  <h2 data-anim="title" class="h-xl">不是把物料摆进去，而是让每类物料都有自己的场景角色。</h2>
+  <div class="grid-3-3">
+    <div data-anim="card" class="callout"><h3>入口</h3><p data-anim="body" class="body-zh">开业卡、花事小卡、当季主题，建立第一眼的品牌语气。</p></div>
+    <div data-anim="card" class="callout"><h3>陈列</h3><p data-anim="body" class="body-zh">产品小卡、花卉图谱、展签，让顾客理解蛋糕像作品一样被陈列。</p></div>
+    <div data-anim="card" class="callout"><h3>带走</h3><p data-anim="body" class="body-zh">书签、明信片、随礼卡，把门店体验延伸到家中与赠礼关系里。</p></div>
+  </div>
+<div class="page-no">25 / 28</div></section>
+
+
+<section class="slide dark" data-label="执行优先级">
+  <p data-anim="kicker" class="kicker">执行优先级</p>
+  <h2 data-anim="title" class="h-xl">先建立能被顾客看见和带走的核心物料，再扩展完整内容系统。</h2>
+  <div class="pipeline">
+    <div data-anim="step"><b>第一阶段</b><span>产品小卡、开业随礼卡、生日礼盒书签、陈列展签。</span></div>
+    <div data-anim="step"><b>第二阶段</b><span>花草明信片、墙面框画、桌面花器与纸品组合。</span></div>
+    <div data-anim="step"><b>第三阶段</b><span>《小西花事》小刊物、季节专题、会员礼与长期内容栏目。</span></div>
+  </div>
+<div class="page-no">26 / 28</div></section>
+
+
+<section class="slide hero light" data-label="结束页">
+  <div class="grid-2-7-5">
+    <div>
+      <p data-anim="kicker" class="kicker">最终落点</p>
+      <h2 data-anim="title" class="h-xl closing-title">把花、光和心意，<br>做进一块蛋糕里。</h2>
+      <p data-anim="lead" class="lead">小西家作的新店叙事，不是更会装饰，而是让产品、纸品、陈列和空间一起说同一种温柔而高级的话。</p>
+    </div>
+    <div><img data-anim="figure" class="frame-img r-3x4" src="images/06-refined-display.webp" alt=""></div>
+  </div>
+<div class="page-no">27 / 28</div></section>
+
+
+<section class="slide hero dark thanks-page" data-label="谢谢页">
+  <div>
+    <p data-anim="kicker" class="kicker">Unknown Design</p>
+    <h2 data-anim="title" class="h-xl thanks-title">谢谢观看</h2>
+    <p data-anim="lead" class="lead">小西家作万象城店｜空间软装与品牌物料植入策略</p>
+  </div>
+<div class="page-no">28 / 28</div></section>
+
+
+</div>
+
+<div id="nav"></div>
+
+<script>
+/* =============== WebGL 双背景 ===============
+   深色页：Holographic Dispersion（全息色散 · 钛金暗流）—— 彩虹微扰、鼠标径向涟漪
+   浅色页：Spiral Vortex（旋转涡流 · 银色珍珠）—— domain-warp 流动、无中心
+   修改风格请参考 references/webgl-backgrounds.md
+*/
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS_DARK = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+  float md=length(p-m);
+  float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+  vec2 p0=p;
+  for(float i=1.0;i<4.0;i++){
+    p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+    p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+  }
+  float r=length(p);float ang=atan(p.y,p.x);
+  vec3 a=vec3(0.12,0.12,0.13);
+  vec3 b=vec3(0.03,0.04,0.05);
+  vec3 c=vec3(1.0,1.0,1.0);
+  vec3 d=vec3(0.1,0.2,0.4);
+  vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+  float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+  col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+  float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+  col+=hi*0.08;
+  vec3 base=vec3(0.05,0.05,0.06);
+  col=mix(base,col,0.85);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const FS_LIGHT = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1,0));
+  float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  mat2 m=mat2(0.80,0.60,-0.60,0.80);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;
+  vec2 md=p-m;float dl=length(md);
+  p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;
+  vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));
+  vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),
+              fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));
+  float f=fbm(p*2.2+r*1.5);
+  vec3 silverDark=vec3(0.86,0.85,0.84);
+  vec3 paper=vec3(0.955,0.945,0.925);
+  vec3 col=mix(silverDark,paper,f);
+  float ph=r.x*2.2+u_time*0.35;
+  col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;
+  col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;
+  float hl=smoothstep(0.48,0.92,f);
+  col+=hl*0.06;
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+  return (tSec)=>{
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,1-mouse.y);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+let drawDark=null, drawLight=null, glRAF=0, glT0=Date.now();
+function startGL(){
+  if(window.__lowPowerMode || glRAF) return;
+  if(!drawDark) drawDark=bootGL('bg-dark',FS_DARK);
+  if(!drawLight) drawLight=bootGL('bg-light',FS_LIGHT);
+  glT0=Date.now();
+  function loop(){
+    if(window.__lowPowerMode){glRAF=0;return;}
+    const t=(Date.now()-glT0)/1000;
+    drawDark(t);drawLight(t);
+    glRAF=requestAnimationFrame(loop);
+  }
+  glRAF=requestAnimationFrame(loop);
+}
+function stopGL(){
+  if(glRAF) cancelAnimationFrame(glRAF);
+  glRAF=0;
+}
+startGL();
+addEventListener('ppt-low-power-change', e=>{e.detail.on ? stopGL() : startGL();});
+
+// =============== 导航（翻页 / 圆点 / 键盘 / 滚轮 / 触屏） ===============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+// 关键：矫正 deck 宽度为 total * 100vw，否则翻页会错位
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  window.__currentSlideIndex = idx;
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  /* 主题切换：优先读 data-theme，其次从 class（light/dark）推断 */
+  const el=slides[idx];
+  const th=el.dataset.theme || (el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));
+  document.body.classList.toggle('light-bg',th==='light');
+  /* 动效：翻页过渡中段触发当前页的入场动画（由 motion-boot 注册） */
+  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+/* =============== ESC 索引视图 =============== */
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(var(--paper-rgb),.6)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)';
+    const wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault();
+    window.__setLowPowerMode(!window.__lowPowerMode);
+    return;
+  }
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
+    if(window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+1);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){
+    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
+      wheelAcc=0;
+    }else{
+      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
+    }
+  }
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+(dx<0?1:-1));
+  }
+},{passive:true});
+
+go(0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+
+<!-- ============ Motion One 动效引擎（本地优先,CDN 兜底） ============
+     加载策略:先 ./assets/motion.min.js(本地,离线可用),失败 fallback 到 jsDelivr CDN
+     加载完成后挂 window.__playSlide / window.__pipeAdvance,
+     导航脚本会在翻页中段调用 __playSlide(idx),键盘/滚轮/触屏会在翻页前调用 __pipeAdvance()
+     双双失败时会兜底把所有 [data-anim] 设为可见,不让动效破坏阅读
+-->
+<script type="module">
+let motion;
+try {
+  motion = await import('./assets/motion.min.js');
+} catch(e1) {
+  try {
+    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+  } catch(e2) {
+    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
+    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
+    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
+  }
+}
+
+if(motion){
+  const { animate, stagger } = motion;
+  document.body.classList.add('motion-ready');
+  const EASE = [.22, 1, .36, 1];
+  const slides = [...document.querySelectorAll('.slide')];
+  let pipeStep = -1;
+  let lastIdx = -1;
+
+  function resetAnims(slide){
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='';
+      el.style.transform='';
+    });
+  }
+
+  function revealStatic(slide){
+    resetAnims(slide);
+    document.getAnimations?.().forEach(a=>a.cancel());
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='1';
+      el.style.transform='none';
+    });
+  }
+
+  function playSlide(i){
+    const slide = slides[i];
+    if(!slide) return;
+    lastIdx = i;
+    const recipe = slide.dataset.animate || (slide.classList.contains('hero') ? 'hero' : 'cascade');
+
+    if(window.__lowPowerMode){
+      revealStatic(slide);
+      return;
+    }
+
+    if(recipe === 'pipeline'){
+      pipeStep = -1;
+      slide.querySelectorAll('[data-anim]').forEach(el=>{
+        el.style.opacity='0.15';
+        el.style.transform='none';
+      });
+      return;
+    }
+
+    resetAnims(slide);
+    const all = [...slide.querySelectorAll('[data-anim]')];
+    if(!all.length) return;
+
+    if(recipe === 'directional'){
+      const lefts  = all.filter(el=>el.dataset.anim==='left');
+      const divs   = all.filter(el=>el.dataset.anim==='divider');
+      const rights = all.filter(el=>el.dataset.anim==='right');
+      const others = all.filter(el=>!['left','right','divider'].includes(el.dataset.anim));
+      if(others.length) animate(others, {opacity:[0,1], y:[12,0]}, {duration:.6, delay:stagger(.1, {start:.15}), easing:EASE});
+      if(lefts.length)  animate(lefts,  {opacity:[0,1], x:[-24,0]}, {duration:.8, delay:.35, easing:EASE});
+      if(divs.length)   animate(divs,   {opacity:[0,.25]},          {duration:.5, delay:.9});
+      if(rights.length) animate(rights, {opacity:[0,1], x:[24,0]},  {duration:.8, delay:1.0, easing:EASE});
+      return;
+    }
+
+    if(recipe === 'quote'){
+      const lines = all.filter(el=>el.dataset.anim==='line');
+      const others = all.filter(el=>el.dataset.anim!=='line');
+      if(others.length) animate(others, {opacity:[0,1], y:[8,0]},    {duration:.6, delay:stagger(.12, {start:.2}), easing:EASE});
+      if(lines.length)  animate(lines,  {opacity:[.35,1], y:[10,0]}, {duration:.8, delay:stagger(.55, {start:.5}), easing:EASE});
+      return;
+    }
+
+    if(recipe === 'hero'){
+      animate(all, {opacity:[0,1], y:[14,0]}, {duration:.9, delay:stagger(.16, {start:.2}), easing:EASE});
+      return;
+    }
+
+    // default: cascade
+    animate(all, {opacity:[0,1], y:[16,0]}, {duration:.75, delay:stagger(.1, {start:.15}), easing:EASE});
+  }
+
+  function pipeAdvance(){
+    if(window.__lowPowerMode) return false;
+    const slide = slides[lastIdx];
+    if(!slide || slide.dataset.animate !== 'pipeline') return false;
+    const steps  = [...slide.querySelectorAll('[data-anim="step"]')];
+    const arrows = [...slide.querySelectorAll('[data-anim="arrow"]')];
+    if(pipeStep >= steps.length - 1) return false;
+    pipeStep++;
+    animate(steps[pipeStep], {opacity:[0.15,1], y:[8,0]}, {duration:.5, easing:EASE});
+    if(pipeStep > 0 && arrows[pipeStep-1]){
+      animate(arrows[pipeStep-1], {opacity:[0.15,.7]}, {duration:.3, delay:.15});
+    }
+    return true;
+  }
+
+  window.__playSlide = playSlide;
+  window.__pipeAdvance = pipeAdvance;
+
+  // 首屏:go(0) 已跑过(同步),没来得及触发动效 → 这里补一下
+  playSlide(0);
+}
+</script>
+</body>
+</html>
