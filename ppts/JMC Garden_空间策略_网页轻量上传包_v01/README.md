@@ -1,4 +1,4 @@
-# JMC Garden 空间策略｜轻量上传版
+# JMC Garden 空间策略
 
 - 入口文件：`index.html`
 - 页面比例：16:9
