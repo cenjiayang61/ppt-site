@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北滘爱宠乐园规划策略 · Unknown Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色(默认:🖋 墨水经典) ============
+       切换主题:从 references/themes.md 复制对应的 :root 块
+       整体替换这几行(--ink / --ink-rgb / --paper / --paper-rgb)
+       其他地方散落的 rgba() 都走 var(--ink-rgb) / var(--paper-rgb),无需逐处改 */
+    --ink:#1f1a14;
+    --ink-rgb:31,26,20;
+    --paper:#f0e6d2;
+    --paper-rgb:240,230,210;
+    --paper-tint:#e3d7bf;
+    --ink-tint:#2d2620;
+
+    /* ============ 字体(跨主题固定) ============ */
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --serif-en:"Playfair Display","Source Serif 4",Georgia,serif;
+    --serif-body-en:"Source Serif 4",Georgia,serif;
+    --serif-zh:"Noto Serif SC","Source Han Serif SC","Songti SC",SimSun,serif;
+    --sans-zh:"Noto Sans SC","Microsoft YaHei",SimHei,source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* ============ WebGL 双背景 ============ */
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}
+  canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}
+  body.light-bg canvas#bg-dark{opacity:0}
+  body.low-power canvas.bg{display:none!important}
+
+  /* ============ Deck 容器 + 翻页 ============ */
+  /* width: NSLIDES * 100vw，会在 JS 里动态矫正 */
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink);background:var(--paper)}
+  .slide.dark{color:var(--paper);background:var(--ink)}
+
+  /* 默认页：遮罩较厚，保证文字可读 */
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  /* Hero 页：遮罩大幅降低，让 WebGL 背景明显透出 */
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  /* Hero 页顶底微弱渐隐，保证 chrome/foot 区域可读 */
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+
+  /* ============ Magazine chrome：顶部 meta + 底部 foot ============ */
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+  .chrome .left,.chrome .right{display:flex;gap:2.4em;align-items:center}
+  .chrome .sep{width:40px;height:1px;background:currentColor;opacity:.4}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .foot .title{font-family:var(--serif-zh);font-weight:400;letter-spacing:.05em;text-transform:none;opacity:.75;font-size:13px}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:6px 14px;border:1px solid currentColor;opacity:.85}
+  .rule{width:100%;height:1px;background:currentColor;opacity:.25;margin:3vh 0}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  /* ============ 字体规则 ============
+     · 衬线（Noto Serif SC / Playfair）：大标题、重点金句、数字
+     · 非衬线（Noto Sans SC）：正文描述、body、补充说明
+     · 等宽（IBM Plex Mono）：kicker、meta 小标签、foot 右侧
+  */
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .display{font-family:var(--serif-en);font-weight:700;font-size:11vw;line-height:.92;letter-spacing:-.025em}
+  .display-zh{font-family:var(--serif-zh);font-weight:700;font-size:7.8vw;line-height:1.04;letter-spacing:-.005em}
+  .h1-zh{font-family:var(--serif-zh);font-weight:700;font-size:4.6vw;line-height:1.12;letter-spacing:-.005em}
+  .h2-zh{font-family:var(--serif-zh);font-weight:600;font-size:3.2vw;line-height:1.2;letter-spacing:0}
+  .h3-zh{font-family:var(--serif-zh);font-weight:500;font-size:1.9vw;line-height:1.35}
+  .body-zh{font-family:var(--sans-zh);font-weight:400;font-size:max(15px,1.22vw);line-height:1.75;opacity:.82;letter-spacing:.01em}
+  .body-serif{font-family:var(--serif-zh);font-weight:400;font-size:max(15px,1.3vw);line-height:1.65;opacity:.88}
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.9vw;line-height:1.4;opacity:.85}
+  .meta{font-family:var(--mono);font-size:max(11px,.88vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .big-num{font-family:var(--serif-en);font-weight:800;font-size:10vw;line-height:.85;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .mid-num{font-family:var(--serif-en);font-weight:700;font-size:5.5vw;line-height:.88;letter-spacing:-.02em;font-feature-settings:"tnum"}
+  .ghost{font-family:var(--serif-en);font-weight:900;font-size:34vw;line-height:.8;opacity:.06;letter-spacing:-.04em;position:absolute;font-feature-settings:"tnum"}
+  em{font-style:italic;font-family:var(--serif-en)}
+  .en{font-family:var(--serif-en);font-style:italic;font-weight:500}
+
+  /* ============ 布局工具 ============ */
+  .col{display:flex;flex-direction:column;gap:2.4vh}
+  .row{display:flex;align-items:center;gap:3vw}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4vw 6vw;flex:1;align-content:center;padding:2vh 0}
+  .grid-9{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3vh 4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;flex:1;align-items:center}
+  .split-55{display:grid;grid-template-columns:55fr 45fr;gap:5vw;flex:1;align-items:stretch}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .bottom-left{position:absolute;left:6vw;bottom:9vh;max-width:50vw}
+  .bottom-right{position:absolute;right:6vw;bottom:9vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:6vw;top:6vh;text-align:right}
+
+  /* ============ Stat（数字矩阵） ============ */
+  .stat{display:flex;flex-direction:column;gap:1vh;align-items:flex-start}
+  .stat .n{font-family:var(--serif-en);font-weight:800;font-size:8vw;line-height:.88;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .stat .l{font-family:var(--sans-zh);font-size:max(13px,1.05vw);opacity:.7;margin-top:1vh;font-weight:400;line-height:1.5}
+  .stat .m{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;margin-bottom:.2vh}
+
+  /* ============ Callout（引用框） ============ */
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}
+  .slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout .cite{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .callout .q-big{font-family:var(--serif-zh);font-weight:600;font-size:max(17px,1.6vw);line-height:1.42}
+
+  /* ============ Platform（平台卡） ============ */
+  .plat{display:flex;flex-direction:column;justify-content:flex-end;padding:2vh 0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .plat .name{font-family:var(--serif-zh);font-weight:700;font-size:1.8vw;margin-bottom:.6vh}
+  .plat .nb{font-family:var(--serif-en);font-weight:700;font-size:3.2vw;letter-spacing:-.02em;line-height:1;font-feature-settings:"tnum"}
+  .plat .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-top:.6vh}
+  .plat .fill{font-family:var(--sans-zh);font-weight:300;font-size:2.4vw;opacity:.28;letter-spacing:-.01em;line-height:1}
+
+  /* ============ Rowline（表格行） ============ */
+  .rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:2vw;padding:2.2vh 0;border-top:1px solid currentColor;align-items:center;border-color:rgba(127,127,127,.25)}
+  .rowline:last-child{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.25)}
+  .rowline .k{font-family:var(--serif-zh);font-weight:700;font-size:1.7vw}
+  .rowline .v{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.2vw);opacity:.85;line-height:1.55}
+  .rowline .m{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;justify-self:end}
+
+  /* ============ Pillar（支柱卡片） ============ */
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+
+  /* ============ Signature / Highlight ============ */
+  .sign{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:2vw;opacity:.7}
+  .hi{position:relative;display:inline}
+  .slide.dark .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--paper-rgb),.15);z-index:-1}
+  .slide.light .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--ink-rgb),.08);z-index:-1}
+
+  /* ============ Icons（Lucide via CDN） ============ */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+  .ico-lg{width:2.6vw;height:2.6vw;stroke-width:1.2;display:inline-block}
+  .ico-md{width:1.8vw;height:1.8vw;stroke-width:1.3;display:inline-block;vertical-align:-.4em}
+  .ico-sm{width:1.1vw;height:1.1vw;stroke-width:1.4;display:inline-block;vertical-align:-.15em;opacity:.7}
+
+  /* ============ 图片占位（虚线框，提示设计师位置） ============ */
+  .img-slot{border:1.5px dashed rgba(127,127,127,.4);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1vh;padding:2vh 2vw;font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;opacity:.55;position:relative;aspect-ratio:16/9;width:100%;max-height:56vh;margin-inline:auto;box-sizing:border-box}
+  .img-slot::before{content:"";position:absolute;inset:8px;border:1px solid currentColor;opacity:.2}
+  .img-slot .plus{font-size:2vw;font-weight:300;opacity:.5;letter-spacing:0}
+  .img-slot .label{position:relative;z-index:2;text-align:center}
+  .img-slot.r-4x3{aspect-ratio:4/3}
+  .img-slot.r-3x2{aspect-ratio:3/2}
+  .img-slot.r-1x1{aspect-ratio:1/1}
+
+  /* ============ 图片实填框（关键：固定高度 + 只裁底部） ============
+     重要约束：高度用内联 height:Nvh 精确控制，不要用 aspect-ratio（会撑破布局）
+     object-position:top center 保证严禁裁剪顶部和左右，只裁剪底部
+  */
+  .frame-img{overflow:hidden;position:relative;background:rgba(0,0,0,.04);box-sizing:border-box;width:100%;border-radius:4px}
+  .slide.dark .frame-img{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+  .frame-img > img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
+  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
+  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
+  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
+  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
+  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
+  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
+  .frame-img.h-16{height:16vh}
+  .frame-img.h-18{height:18vh}
+  .frame-img.h-22{height:22vh}
+  .frame-img.h-26{height:26vh}
+  .frame-img.h-28{height:28vh}
+  .frame-cap{display:flex;justify-content:space-between;align-items:baseline;gap:1vw;margin-top:.8vh;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.72}
+  .frame-cap .pf{font-family:var(--serif-zh);font-weight:600;font-size:max(13px,1vw);letter-spacing:.04em;text-transform:none;opacity:.94}
+  .frame-cap .nb{font-family:var(--serif-en);font-style:italic;font-size:max(15px,1.2vw);letter-spacing:.02em;text-transform:none;opacity:.88}
+  .frame-cap .idx{font-family:var(--mono);opacity:.5}
+  figure.tile{display:flex;flex-direction:column;margin:0;min-width:0}
+  figure.tile > .frame-img{flex:0 0 auto}
+
+  /* ============ 导航 ============ */
+  #nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+  #nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+  #nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+  body.light-bg #nav{background:rgba(255,255,255,.25)}
+  body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}
+  body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}
+  #hint{position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa}
+  body.low-power #hint{opacity:.72;color:var(--paper);mix-blend-mode:normal}
+  body.light-bg.low-power #hint{color:var(--ink)}
+
+  /* ============================================================
+     ============ LAYOUTS API · 面向 agent 的类（v2）============
+     所有 layouts.md 中的骨架都基于下面这套命名。
+     如果你在 layouts.md 里看到某个类，它必须在下面有定义。
+     ============================================================ */
+
+  /* ---------- .frame：每页主内容容器 ---------- */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  /* 当 .frame 同时加了 grid 类时，grid 的 display:grid 覆盖 flex */
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-3-3,
+  .frame.grid-6{display:grid}
+
+  /* ---------- 标题层级（API 名称，衬线为主） ---------- */
+  .h-hero{
+    font-family:var(--serif-zh);
+    font-weight:900;
+    font-size:10vw;
+    line-height:.96;
+    letter-spacing:-.02em;
+  }
+  .h-xl{
+    font-family:var(--serif-zh);
+    font-weight:700;
+    font-size:6.2vw;
+    line-height:1.08;
+    letter-spacing:-.01em;
+  }
+  .h-sub{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:3.1vw;
+    line-height:1.25;
+    letter-spacing:0;
+    opacity:.7;
+  }
+  .h-md{
+    font-family:var(--serif-zh);
+    font-weight:600;
+    font-size:2.3vw;
+    line-height:1.3;
+  }
+  /* 英文标题专用（Playfair 衬线） */
+  .h-hero-en,.h-xl-en{font-family:var(--serif-en);letter-spacing:-.025em}
+
+  /* ---------- lead 引语 ---------- */
+  .lead{
+    font-family:var(--serif-zh);
+    font-weight:400;
+    font-size:1.75vw;
+    line-height:1.5;
+    opacity:.86;
+  }
+
+  /* ---------- meta-row 底部元数据 ---------- */
+  .meta-row{
+    display:flex;
+    gap:1.2em;
+    align-items:baseline;
+    flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:max(12px,.92vw);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- stat-card（数据大字报用） ---------- */
+  .stat-card{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    align-items:flex-start;
+    padding-top:1.6vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.3);
+  }
+  .stat-card .stat-label{
+    font-family:var(--mono);
+    font-size:max(10px,.78vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
+  .stat-card .stat-nb{
+    font-family:var(--serif-en);
+    font-weight:800;
+    font-size:5.8vw;
+    line-height:.9;
+    letter-spacing:-.03em;
+    font-feature-settings:"tnum";
+    margin-top:.4vh;
+  }
+  .stat-card .stat-nb .stat-unit{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:.38em;
+    letter-spacing:0;
+    opacity:.72;
+    margin-left:.14em;
+  }
+  .stat-card .stat-note{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(13px,1.05vw);
+    line-height:1.5;
+    opacity:.72;
+    margin-top:.6vh;
+  }
+  /* 当 stat-card 用于 grid-4（2x2），数字适度放大；若页面有标题+引文在上方，可内联 style 覆盖为更小值 */
+  .grid-4 .stat-card .stat-nb{font-size:5vw}
+  /* 当只有 3 个，字也可以稍大 */
+  .grid-3 .stat-card .stat-nb{font-size:6.8vw}
+
+  /* ---------- pipeline（流水线） ---------- */
+  .pipeline-section{
+    margin-top:4.4vh;
+    padding-top:2.8vh;
+    border-top:1px dashed rgba(127,127,127,.32);
+  }
+  .pipeline-section:first-of-type{
+    border-top:0;
+    padding-top:0;
+    margin-top:3vh;
+  }
+  .pipeline-label{
+    font-family:var(--mono);
+    font-size:max(11px,.85vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.62;
+    margin-bottom:2.2vh;
+  }
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1.2vw;
+  }
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .step{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    padding-top:1.4vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.35);
+  }
+  .step-nb{
+    font-family:var(--serif-en);
+    font-style:italic;
+    font-weight:500;
+    font-size:1.15vw;
+    opacity:.45;
+  }
+  .step-title{
+    font-family:var(--sans-zh);
+    font-weight:700;
+    font-size:1.55vw;
+    letter-spacing:.01em;
+    line-height:1.2;
+  }
+  .step-desc{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(12px,.95vw);
+    line-height:1.45;
+    opacity:.72;
+  }
+
+  /* ---------- 网格（layouts.md 所用） ---------- */
+  /* 这些类独立挂到任何容器上都能生效，不依赖 .frame 复合选择器 */
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-auto-rows:minmax(0,1fr);
+    gap:2.4vh 2vw;
+  }
+  /* grid-6 已在旧样式里定义为 3x2，这里仅补 align */
+
+  /* ---------- 图片 frame-img（layouts.md 主命名） ---------- */
+  /* 在旧样式里已定义，这里补 img-cap 命名别名与增强 */
+  figure.frame-img{margin:0;display:flex;flex-direction:column;min-width:0}
+  .img-cap{
+    display:block;
+    margin-top:.8vh;
+    font-family:var(--mono);
+    font-size:max(10px,.8vw);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+  /* callout src 命名别名 */
+  .callout-src{
+    display:block;
+    margin-top:1.6vh;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- chrome & foot 补位（layouts.md 简单写法） ---------- */
+  .chrome{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+
+  /* ============ 动效系统(Motion One 驱动) ============
+     所有 [data-anim] 元素默认隐藏,进入页面时由 JS 逐个揭示。
+     - cascade(默认):按 DOM 顺序 stagger 120ms 淡入 + y:16→0
+     - hero(hero 页自动):慢一点的 stagger 180ms
+     - quote(含 [data-anim="line"]):逐行 600ms 淡入
+     - directional(含 [data-anim="left|right"]):左→分隔线→右
+     - pipeline(data-animate="pipeline"):Space/→ 手动推进
+     Motion One 没加载成功时(CDN 断 + 本地丢),所有 [data-anim] 会兜底显示。
+  */
+  [data-anim]{opacity:1}
+  body.motion-ready [data-anim]{opacity:0}
+  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
+  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
+  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
+  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
+  body.low-power #deck{transition:none!important}
+  body.low-power *,
+  body.low-power *::before,
+  body.low-power *::after{animation:none!important;transition:none!important}
+  body.low-power.motion-ready [data-anim],
+  body.low-power [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ---------- 响应式降级 ---------- */
+  @media (max-width:900px){
+    .display{font-size:16vw}
+    .display-zh{font-size:12vw}
+    .h1-zh{font-size:7vw}
+    .h-hero{font-size:14vw}
+    .h-xl{font-size:9vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4{grid-template-columns:1fr}
+  }
+
+  /* Project image rules: borderless, transparent, square corners. */
+  .frame-img,.slide.dark .frame-img{background:transparent!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+  .frame-img>img{border:0!important;border-radius:0!important;box-shadow:none!important}
+  figure.tile,figure.frame-img{border:0!important;background:transparent!important}
+  .frame-cap,.img-cap{border:0!important}
+
+  /* GitHub Pages upload variant: 16:10 MacBook Pro viewing tune. */
+  @media (min-aspect-ratio: 16/10) and (max-aspect-ratio: 16/9){
+    .slide{padding-top:5.4vh;padding-bottom:9vh}
+    #nav{bottom:2vh}
+    #hint{bottom:2.4vh}
+  }
+</style>
+</head>
+<body>
+<script>
+  (function(){
+    const KEY = 'guizang-ppt-low-power';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stored = localStorage.getItem(KEY);
+    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
+    function updateHint(){
+      const hint = document.getElementById('hint');
+      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
+    }
+    window.__setLowPowerMode = function(on, opts={}){
+      window.__lowPowerMode = !!on;
+      document.body.classList.toggle('low-power', window.__lowPowerMode);
+      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
+      if(window.__lowPowerMode && document.getAnimations){
+        document.getAnimations().forEach(a=>a.cancel());
+      }
+      updateHint();
+      dispatchEvent(new CustomEvent('ppt-low-power-change', {detail:{on:window.__lowPowerMode}}));
+      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
+    };
+    document.body.classList.toggle('low-power', window.__lowPowerMode);
+    addEventListener('DOMContentLoaded', updateHint, {once:true});
+  })();
+</script>
+
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+
+<div id="deck">
+
+<!-- ============================================================
+     SLIDES 插入区 · 在此处填充所有 <section class="slide ..."> 页面
+     每页模板参考 references/page-patterns.md
+     页面组件参考 references/components.md
+     ============================================================ -->
+
+
+<section class="slide hero dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>OPENING</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>01 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:3.5vh;align-content:center;min-height:80vh">
+          <div class="kicker" data-anim>French Garden · Pet Life</div>
+          <h1 class="h-hero" style="font-size:7.2vw" data-anim>北滘爱宠乐园</h1>
+          <h2 class="h-sub" data-anim>法式田园宠物咖啡复合乐园</h2>
+          <p class="lead" style="max-width:58vw" data-anim>在法式花园里，和毛孩子一起虚度好时光。</p>
+          <div class="meta-row" data-anim><span>规划策略</span><span>·</span><span>2026.08</span></div>
+        </div>
+  <div class="foot"><div class="title">北滘爱宠乐园规划策略</div><div>OPENING · 01</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>CONTENTS</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>02 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>Contents · 结构总览</div><h2 class="h1-zh" data-anim>目录</h2><div style="margin-top:5vh"><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">01 项目概述</div><div class="m">03—06</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">02 品牌策略与空间定位</div><div class="m">07—12</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">03 空间总体规划策略</div><div class="m">13—18</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">04 核心体验场景设计策略</div><div class="m">19—35</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">05 配套服务与安全系统</div><div class="m">36—42</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">06 材质、色彩与环境风格</div><div class="m">43—48</div></div><div class="rowline" data-anim style="grid-template-columns:4fr 1fr;padding:1.5vh 0"><div class="k">结语与致谢</div><div class="m">49—50</div></div></div></div>
+  <div class="foot"><div class="title">目录</div><div>CONTENTS · 02</div></div>
+</section>
+
+
+<section class="slide hero dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 01</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>03 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 01 · Overview</div><h1 class="h-hero" style="font-size:8vw" data-anim>项目概述</h1><p class="lead" style="max-width:58vw" data-anim>从项目定位、复合业态到核心客群，先建立完整的体验与运营边界。</p></div>
+  <div class="foot"><div class="title">项目概述</div><div>ACT 01 · 03</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 01 · 项目概述</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>04 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:6vh"><div><div class="kicker" data-anim>1.1 · Positioning</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">项目定位</h3><h2 class="h1-zh" data-anim>法式田园宠物咖啡<br>复合乐园</h2><p class="lead" style="margin-top:3vh" data-anim>集法式咖啡轻食、宠物社交、运动游乐、洗护服务与品牌商业市集于一体。</p><p class="body-zh" style="margin-top:3vh" data-anim>以法式田园生活方式为体验基底，以宠物友好、空间分流和复合运营为组织原则，让养宠人与非养宠人在同一园区获得各自舒适、彼此可见而互不干扰的体验。</p></div><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:55vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-02.webp" alt="法式田园宠物咖啡场景" style="object-fit:cover;object-position:center center;border:0"></div><figcaption class="frame-cap" style="border:0"><span class="pf">法式花园 · 咖啡与陪伴</span></figcaption></figure></div>
+  <div class="foot"><div class="title">项目定位</div><div>ACT 01 · 项目概述 · 04</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 01 · 项目概述</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>05 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>1.2 · Mixed Program</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">复合业态构成</h3><h2 class="h1-zh" data-anim>五个板块，构成完整体验</h2><div style="margin-top:7vh"><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3vh 3vw;align-items:start"><div class="pillar" data-anim><div class="ic">01</div><div class="t">咖啡轻食</div><div class="d">法式咖啡、轻食、人宠休憩；形成项目公共客厅。</div></div><div class="pillar" data-anim><div class="ic">02</div><div class="t">宠物社交</div><div class="d">爱宠区、普通客区与主人休息区；建立有序共处。</div></div><div class="pillar" data-anim><div class="ic">03</div><div class="t">运动游乐</div><div class="d">大小犬运动、草坪活动与宠物泳池。</div></div><div class="pillar" data-anim><div class="ic">04</div><div class="t">洗护照护</div><div class="d">自助洗护、寄养托育、补水与清洁。</div></div><div class="pillar" data-anim><div class="ic">05</div><div class="t">品牌商业</div><div class="d">小镇街区、用品售卖、快闪与市集。</div></div></div></div></div>
+  <div class="foot"><div class="title">复合业态构成</div><div>ACT 01 · 项目概述 · 05</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 01 · 项目概述</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>06 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>1.3 · Audience & Time</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">核心客群与运营时段</h3><h2 class="h1-zh" data-anim>谁会来 · 如何持续使用</h2><div style="margin-top:5vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">养宠中产家庭</div><div class="v">25—45岁，愿意为宠物品质消费；重视人宠共处、社交分享与一站式服务。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">非养宠咖啡客</div><div class="v">追求生活美学、咖啡品质与花园氛围的年轻人与文艺爱好者。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">B端合作方</div><div class="v">宠物品牌、用品与服务商、活动合作方；需要精准触达、展示与活动场地。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">全时段运营</div><div class="v">日间咖啡与宠物活动、工作日托育、夜间社交、周末派对与品牌活动。</div></div></div></div>
+  <div class="foot"><div class="title">核心客群与运营时段</div><div>ACT 01 · 项目概述 · 06</div></div>
+</section>
+
+
+<section class="slide hero light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 02</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>07 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 02 · Brand</div><h1 class="h-hero" style="font-size:5.4vw;white-space:nowrap" data-anim>品牌策略与空间定位</h1><p class="lead" style="max-width:68vw" data-anim>把法式田园的悠闲、浪漫与生活气息，转译为真实可用的人宠空间。</p></div>
+  <div class="foot"><div class="title">品牌策略与空间定位</div><div>ACT 02 · 07</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 02 · 品牌策略</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>08 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:5vh"><div><div class="kicker" data-anim>2.1 · Brand Concept</div><h2 class="h1-zh" data-anim>品牌核心概念</h2><h3 class="h2-zh" style="font-size:2.65vw;margin-top:2vh" data-anim>像在法国乡村庄园里遛狗</h3><p class="body-zh" style="margin-top:2.5vh" data-anim>融合法式浪漫美学与自然元素，以自然材质、清新色调和随性设计营造温馨舒适的生活氛围。</p><p class="body-zh" style="margin-top:1.8vh" data-anim>将悠闲、小资、舒适而简单、生活气息浓郁的法式乡村特质注入宠物乐园，让养宠人在此获得独特、可停留的陪伴体验。</p></div><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:55vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-01.webp" alt="法式花园空间意向" style="object-fit:cover;object-position:center center;border:0"></div><figcaption class="frame-cap" style="border:0"><span class="pf">品牌概念 · 法式花园生活</span></figcaption></figure></div>
+  <div class="foot"><div class="title">品牌核心概念</div><div>ACT 02 · 品牌策略 · 08</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 02 · 品牌策略</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>09 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Style</div>
+        <h2 class="h1-zh" data-anim>风格意向</h2>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-01.webp" alt="风格意向 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-02.webp" alt="风格意向 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-03.webp" alt="风格意向 3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-04.webp" alt="风格意向 4" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-05.webp" alt="风格意向 5" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">风格意向</div><div>ACT 02 · 品牌策略 · 09</div></div>
+</section>
+
+
+<section class="slide hero dark" data-theme="dark" data-animate="quote">
+  <div class="chrome">
+    <div class="left"><span>ACT 02 · 品牌策略</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>10 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:3.5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>2.2 · Brand Proposition</div><h1 class="h1-zh" data-anim>品牌主张</h1><blockquote style="font-family:var(--serif-zh);font-weight:700;font-size:4.5vw;line-height:1.22;max-width:80vw"><span data-anim="line" style="display:block">在法式花园里，</span><span data-anim="line" style="display:block">和毛孩子一起虚度好时光。</span></blockquote><p class="lead" style="max-width:58vw;opacity:.7" data-anim>自然 · 松弛 · 陪伴 · 可停留的生活时间</p></div>
+  <div class="foot"><div class="title">品牌主张</div><div>ACT 02 · 品牌策略 · 10</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 02 · 品牌策略</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>11 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>2.3 · Audience Portrait</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">目标客群画像</h3><h2 class="h1-zh" data-anim>三类人群 · 三种价值</h2><div style="margin-top:6vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">养宠中产家庭</div><div class="v">25—45岁，可支配收入较高；需要高品质人宠空间、社交分享和一站式消费。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">非养宠咖啡客</div><div class="v">追求生活美学；需要法式田园氛围、咖啡品质与拍照打卡。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">B端合作方</div><div class="v">宠物品牌、用品和服务商；需要精准客群触达、品牌展示、快闪与活动场地。</div></div></div></div>
+  <div class="foot"><div class="title">目标客群画像</div><div>ACT 02 · 品牌策略 · 11</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 02 · 品牌策略</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>12 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>2.4 · Core Values</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">品牌核心价值体系</h3><h2 class="h1-zh" data-anim>美学 · 共生 · 时间 · 商业</h2><div style="margin-top:7vh"><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3vh 3vw;align-items:start"><div class="pillar" data-anim><div class="ic">01</div><div class="t">法式美学</div><div class="d">以法式田园为视觉基底，营造浪漫、优雅、松弛的空间气质。</div></div><div class="pillar" data-anim><div class="ic">02</div><div class="t">人宠共生</div><div class="d">通过动线与分区，让养宠人与非养宠人各得其所、互不干扰。</div></div><div class="pillar" data-anim><div class="ic">03</div><div class="t">全时段运营</div><div class="d">从日间咖啡到夜间社交，从工作日托育到周末派对。</div></div><div class="pillar" data-anim><div class="ic">04</div><div class="t">商业闭环</div><div class="d">以C端消费与B端合作双轮驱动，形成可持续复合运营。</div></div></div></div></div>
+  <div class="foot"><div class="title">品牌核心价值体系</div><div>ACT 02 · 品牌策略 · 12</div></div>
+</section>
+
+
+<section class="slide hero light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 03</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>13 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 03 · Masterplan</div><h1 class="h-hero" style="font-size:6.8vw" data-anim>空间规划</h1><p class="lead" style="max-width:64vw" data-anim>以人宠双动线、功能邻接和运营协同组织3000—5000㎡复合园区。</p></div>
+  <div class="foot"><div class="title">空间总体规划策略</div><div>ACT 03 · 13</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 03 · 空间规划</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>14 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:6vh"><div><div class="kicker" data-anim>3.1—3.2 · Site</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">场地概况与总体布局</h3><h2 class="h1-zh" data-anim>长条场地<br>连续组织</h2><p class="lead" style="margin-top:3vh" data-anim>城市近郊地块，包含室内建筑、硬质活动场地与户外草坪。</p><p class="body-zh" style="margin-top:3vh" data-anim>左侧连续草坪承载大型犬、小型犬与人宠运动；中部硬质空间作为到达与公共活动核心；右侧靠路布置泳池、洗护与寄养照护。</p></div><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:56vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/master-plan.jpg" alt="法式田园宠物公园平面布局" style="object-fit:contain;object-position:center center;border:0"></div><figcaption class="frame-cap" style="border:0"><span class="pf">总体平面布局示意</span></figcaption></figure></div>
+  <div class="foot"><div class="title">场地概况与总体布局</div><div>ACT 03 · 空间规划 · 14</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 03 · 空间规划</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>15 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>3.2 · Master Plan</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">总体平面布局</h3><h2 class="h1-zh" data-anim>功能关系一图总览</h2><div style="margin-top:3vh"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:54vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/master-plan.jpg" alt="法式田园宠物公园总体平面布局" style="object-fit:contain;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">总体平面布局</div><div>ACT 03 · 空间规划 · 15</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 03 · 空间规划</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>16 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>3.3 · Circulation</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">人宠双动线</h3><h2 class="h1-zh" data-anim>三条动线 · 互不干扰</h2><div style="margin-top:5vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">养宠人动线</div><div class="v">入口双门缓冲 → 咖啡爱宠区 → 小镇街区 → 大小犬运动与草坪 → 泳池 → 洗护与售卖 → 离园。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">非养宠人动线</div><div class="v">入口 → 咖啡普通客区 → 小镇街区与公共花园；与宠物活动区物理隔离、视觉相连。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.8vh 0"><div class="k">运营服务动线</div><div class="v">寄养、泳池、洗护与用品售卖相邻，便于照护、清洁、补给与会员服务快速协同。</div></div></div></div>
+  <div class="foot"><div class="title">人宠双动线</div><div>ACT 03 · 空间规划 · 16</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 03 · 空间规划</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>17 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>3.4 · Program</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">功能分区架构</h3><h2 class="h1-zh" data-anim>七个分区 · 一套系统</h2><div style="margin-top:3vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">咖啡复合乐园</div><div class="v">法式咖啡轻食、人宠休憩、普通客与爱宠客分区。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">小镇主题街区</div><div class="v">品牌赞助、商业零售、打卡与B端合作。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">爱宠岛与运动区</div><div class="v">大型犬、小型犬、人宠运动与草坪赛事。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">宠物泳池</div><div class="v">消暑、运动、人宠互动与主人休息。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">草坪活动与市集</div><div class="v">定期市集、主题活动、派对与商务活动。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">寄养与照护</div><div class="v">工作日托育、宠物寄养与基础照护。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">配套服务系统</div><div class="v">入口缓冲、洗护、售卖、补水、拾便洗手与导视。</div></div></div></div>
+  <div class="foot"><div class="title">功能分区架构</div><div>ACT 03 · 空间规划 · 17</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 03 · 空间规划</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>18 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>3.5 · Adjacency</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">空间邻接与运营协同</h3><h2 class="h1-zh" data-anim>相邻不是偶然，而是服务链路</h2><div style="margin-top:5vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">咖啡区 × 运动区</div><div class="v">通过大面积落地玻璃形成持续看护关系。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">泳池 × 洗护区</div><div class="v">游泳后直接进入洗护，减少湿宠物穿越公共空间。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">洗护区 × 售卖区</div><div class="v">利用主人等待时间形成用品与服饰消费。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">草坪 × 活动市集</div><div class="v">日常为运动与休闲草坪，活动时切换为赛事、市集、派对和发布场地。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">寄养 × 道路侧建筑</div><div class="v">相对独立、便于管理，并与泳池、洗护形成短动线。</div></div></div></div>
+  <div class="foot"><div class="title">空间邻接与运营协同</div><div>ACT 03 · 空间规划 · 18</div></div>
+</section>
+
+
+<section class="slide hero light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>19 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 04 · Experience</div><h1 class="h-hero" style="font-size:6.5vw" data-anim>体验场景</h1><p class="lead" style="max-width:62vw" data-anim>咖啡、小镇、爱宠岛、泳池、市集与照护，共同构成完整的一日体验。</p></div>
+  <div class="foot"><div class="title">核心体验场景设计策略</div><div>ACT 04 · 19</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>20 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:5vh"><div><div class="kicker" data-anim>4.1 · Café</div><h2 class="h1-zh" data-anim>咖啡复合乐园</h2><h3 class="h2-zh" style="font-size:2.55vw;margin-top:2vh" data-anim>像走进法国南部小镇咖啡馆</h3><p class="body-zh" style="margin-top:2.5vh" data-anim>咖啡区贴近狗狗活动区，以大面积玻璃正对运动区与草坪，让主人在享用咖啡时持续观察爱宠动态。</p><p class="body-zh" style="margin-top:1.8vh" data-anim>空间承担日常消费、社交休憩与项目公共客厅的角色。</p></div><div style="display:grid;justify-content:center;padding-top:1vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:32vh;height:58vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-13.webp" alt="建筑造型意向13" style="object-fit:contain;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">咖啡复合乐园</div><div>ACT 04 · 核心场景 · 20</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light" data-animate="directional">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>21 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>4.1.1—4.1.2 · Two Zones</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">咖啡区布局与客群分隔</h3><h2 class="h1-zh" data-anim>开放共处 · 物理分隔</h2><div class="grid-2-6-6" style="margin-top:5vh"><div data-anim="left" style="border-left:3px solid currentColor;padding:2.5vh 2vw"><h3 class="h-md">爱宠区</h3><p class="body-zh" style="margin-top:2vh">贴近室内狗狗活动区与户外运动区；设置玻璃观察窗、牵引绳挂钩和宠物专属座位；地面防滑、易清洁。</p></div><div data-anim="right" style="border-left:3px solid currentColor;padding:2.5vh 2vw"><h3 class="h-md">普通客区</h3><p class="body-zh" style="margin-top:2vh">与宠物活动区保持物理隔离；可透过玻璃观看宠物活动，但宠物无法进入，满足普通咖啡消费。</p></div></div><div class="callout" style="margin-top:5vh" data-anim>开放式室内中部预留狗狗活动空间；人类桌椅向周边布置，圆弧门窗和落地玻璃建立看护关系。</div></div>
+  <div class="foot"><div class="title">咖啡区布局与客群分隔</div><div>ACT 04 · 核心场景 · 21</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>22 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:3.5vh"><div class="kicker" data-anim>4.1.3—4.1.4 · Details</div><h2 class="h1-zh" style="font-size:3.6vw" data-anim>咖啡区风格与宠物适配</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2vw;margin-top:2.2vh"><div class="pillar" data-anim><div class="t" style="font-size:1.65vw">墙面</div><div class="d">奶油色、米白与法式装饰线条。</div></div><div class="pillar" data-anim><div class="t" style="font-size:1.65vw">地面与家具</div><div class="d">文化石、做旧木地板与洗白家具。</div></div><div class="pillar" data-anim><div class="t" style="font-size:1.65vw">固定设施</div><div class="d">低矮柜体、防抓台面与圆角家具。</div></div><div class="pillar" data-anim><div class="t" style="font-size:1.65vw">人宠服务</div><div class="d">自助吧台、泊宠位与补水站。</div></div></div><div style="display:flex;justify-content:center;gap:1.2vw;margin-top:3vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-berth-01.webp" alt="咖啡区泊宠位" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/water-02.webp" alt="宠物补水站" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/public-rest.webp" alt="公区休息装置" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">咖啡区风格与宠物适配</div><div>ACT 04 · 核心场景 · 22</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>23 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:3.5vh"><div class="kicker" data-anim>4.2 · Village Street</div><h2 class="h1-zh" style="font-size:3.8vw" data-anim>小镇主题街区</h2><h3 class="h2-zh" style="font-size:2.1vw;margin-top:1.2vh" data-anim>微型商业街区 · B端合作载体</h3><p class="body-zh" style="margin-top:1.4vh" data-anim>沿园区主要动线中段布局；低层乡村建筑、自然木构、门廊与坡屋顶形成连续界面，并预留广告墙与展示接口。</p><div style="display:flex;justify-content:center;gap:1.2vw;margin-top:2.8vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/temporary-01.webp" alt="临时商业装置" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/temporary-02.webp" alt="临时展示装置" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:38vh;height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/advertising-wall.webp" alt="大型品牌广告位" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">小镇主题街区</div><div>ACT 04 · 核心场景 · 23</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>24 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>Material Board · Architecture</div><h2 class="h1-zh" data-anim>建筑造型意向 · I</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;margin-top:4vh;justify-items:center"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:29vh;height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-12.webp" alt="建筑造型意向12" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:29vh;height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-13.webp" alt="建筑造型意向13" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:29vh;height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-14.webp" alt="建筑风格意向14" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">建筑造型意向 · I</div><div>ACT 04 · 核心场景 · 24</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>25 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Architecture</div>
+        <h2 class="h1-zh" data-anim>建筑造型意向 · II</h2>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-07.webp" alt="建筑造型意向 · II 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-08.webp" alt="建筑造型意向 · II 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-09.webp" alt="建筑造型意向 · II 3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-10.webp" alt="建筑造型意向 · II 4" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-11.webp" alt="建筑造型意向 · II 5" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">建筑造型意向 · II</div><div>ACT 04 · 核心场景 · 25</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>26 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>4.3 · Pet Island</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">爱宠岛与运动区</h3><h2 class="h1-zh" data-anim>大小犬分区 · 草坪联动</h2><div class="grid-2-6-6" style="margin-top:5vh"><div class="callout" data-anim="left"><div class="q-big">大型犬运动区</div><span class="cite">体重＞15kg · 围栏≥1.8m</span><p class="body-zh" style="margin-top:2vh">攀岩台、跳圈、平衡木和大型障碍赛道。</p></div><div class="callout" data-anim="right"><div class="q-big">小型犬运动区</div><span class="cite">体重＜15kg · 围栏1.2m</span><p class="body-zh" style="margin-top:2vh">滑梯、彩虹桥、软体隧道和矮障碍设施。</p></div></div><p class="lead" style="margin-top:5vh" data-anim>全部采用防滑软质材料；平日作为自由活动和运动设施，活动时转换为赛事场地。</p></div>
+  <div class="foot"><div class="title">爱宠岛与运动区</div><div>ACT 04 · 核心场景 · 26</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>27 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Play</div>
+        <h2 class="h1-zh" data-anim>狗狗游玩区意向 · I</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-01.webp" alt="狗狗游玩区意向 · I 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-02.webp" alt="狗狗游玩区意向 · I 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-03.webp" alt="狗狗游玩区意向 · I 3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-04.webp" alt="狗狗游玩区意向 · I 4" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-05.webp" alt="狗狗游玩区意向 · I 5" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:24vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-06.webp" alt="狗狗游玩区意向 · I 6" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">狗狗游玩区意向 · I</div><div>ACT 04 · 核心场景 · 27</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>28 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Play</div>
+        <h2 class="h1-zh" data-anim>狗狗游玩区意向 · II</h2>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-07.webp" alt="狗狗游玩区意向 · II 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-08.webp" alt="狗狗游玩区意向 · II 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-09.webp" alt="狗狗游玩区意向 · II 3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-10.webp" alt="狗狗游玩区意向 · II 4" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-11.webp" alt="狗狗游玩区意向 · II 5" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">狗狗游玩区意向 · II</div><div>ACT 04 · 核心场景 · 28</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>29 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>4.3.2 · Lawn</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">人宠草坪活动</h3><h2 class="h1-zh" data-anim>中央草坪保持连续、开阔</h2><p class="lead" style="margin-top:2vh" data-anim>承载自由奔跑、主人陪伴、互动游戏与赛事活动。</p><p class="body-zh" style="margin-top:2vh" data-anim>路径、围栏、休息点与补水设施沿边界组织，避免固定设施过度切碎中心活动面。</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw;margin-top:4vh"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/fence-01.webp" alt="狗狗户外区域护栏" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/fence-02.webp" alt="户外草坪围栏" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-island-01.webp" alt="宠物岛入口与分区" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">人宠草坪活动</div><div>ACT 04 · 核心场景 · 29</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>30 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Garden Path</div>
+        <h2 class="h1-zh" data-anim>花园公区路径意向</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/path-01.webp" alt="花园公区路径意向 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/path-02.webp" alt="花园公区路径意向 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/path-03.webp" alt="花园公区路径意向 3" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">花园公区路径意向</div><div>ACT 04 · 核心场景 · 30</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>31 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:5vh"><div><div class="kicker" data-anim>4.4 · Pool</div><h2 class="h1-zh" data-anim>宠物泳池</h2><p class="lead" style="margin-top:1.6vh" data-anim>狗狗们的马尔代夫</p><div style="margin-top:2.5vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">双门进出口</div><div class="v">防止不需要游泳的狗狗误入泳池。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">阶梯式设计</div><div class="v">由浅到深，兼顾小型犬与大型犬。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">伸缩遮阳顶</div><div class="v">晴天防晒、雨天遮雨。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">主人休息区</div><div class="v">法式座椅与遮阳伞提供乘凉、避雨空间。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">洗护与水质</div><div class="v">游泳后直接洗护；循环消毒保持水质清洁。</div></div></div></div><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:55vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-04.webp" alt="狗狗泳池参考4" style="object-fit:contain;object-position:center center;border:0"></div><figcaption class="frame-cap" style="border:0"><span class="pf">泳池活动与宠物社交</span></figcaption></figure></div>
+  <div class="foot"><div class="title">宠物泳池</div><div>ACT 04 · 核心场景 · 31</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>32 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Pool</div>
+        <h2 class="h1-zh" data-anim>狗狗泳池意向</h2>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-01.webp" alt="狗狗泳池意向 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-02.webp" alt="狗狗泳池意向 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-03.webp" alt="狗狗泳池意向 3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-04.webp" alt="狗狗泳池意向 4" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pool-05.webp" alt="狗狗泳池意向 5" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">狗狗泳池意向</div><div>ACT 04 · 核心场景 · 32</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>33 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>4.5 · Events</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">草坪活动与品牌市集</h3><h2 class="h1-zh" data-anim>日常是草坪 · 活动时快速切换</h2><div style="margin-top:4vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">定期萌宠市集</div><div class="v">每月或每季度举办，招募宠物商家入驻并预留当季活动广告位。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">宠物主题活动</div><div class="v">宠物才艺展示、敏捷表演与人宠互动游戏。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">品牌快闪活动</div><div class="v">宠物品牌新品发布与体验活动。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">生日会与派对</div><div class="v">宠物生日会、小型聚会与爱宠派对。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">商务活动</div><div class="v">品牌发布会与团队活动。</div></div></div></div>
+  <div class="foot"><div class="title">草坪活动与品牌市集</div><div>ACT 04 · 核心场景 · 33</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>34 / 50</span></div>
+  </div>
+  
+      <div class="frame" style="padding-top:4vh">
+        <div class="kicker" data-anim>Material Board · Events</div>
+        <h2 class="h1-zh" data-anim>宠物派对与活动意向</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4vh 1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/party-01.webp" alt="宠物派对与活动意向 1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/party-02.webp" alt="宠物派对与活动意向 2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/party-03.webp" alt="宠物派对与活动意向 3" style="object-fit:cover;object-position:center center;border:0"></div></figure></div>
+      </div>
+  <div class="foot"><div class="title">宠物派对与活动意向</div><div>ACT 04 · 核心场景 · 34</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 04 · 核心场景</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>35 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:6vh"><div><div class="kicker" data-anim>4.6 · Care</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">宠物寄养与照护</h3><h2 class="h1-zh" data-anim>从一次到访<br>延伸为持续服务</h2><p class="lead" style="margin-top:3vh" data-anim>承接工作日托育、短时寄养与基础照护。</p><p class="body-zh" style="margin-top:3vh" data-anim>利用道路一侧硬质区域形成相对独立的建筑空间；与高频公共活动区适度分隔，同时与泳池、洗护和咖啡复合乐园保持便捷联系。</p></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2vw;margin-top:7vh"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-07.webp" alt="寄养照护建筑意向" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:38vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-island-02.webp" alt="宠物服务入口意向" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">宠物寄养与照护</div><div>ACT 04 · 核心场景 · 35</div></div>
+</section>
+
+
+<section class="slide hero dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 05</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>36 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 05 · Service</div><h1 class="h-hero" style="font-size:6.5vw" data-anim>配套系统</h1><p class="lead" style="max-width:64vw" data-anim>入口、洗护、售卖、补水、清洁、导视与安全，共同决定园区是否真正可运营。</p></div>
+  <div class="foot"><div class="title">配套服务与安全系统</div><div>ACT 05 · 36</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>37 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>5.1 · Entrance</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">入口双门缓冲</h3><h2 class="h1-zh" data-anim>第一道门入园 · 第二道门进核心区</h2><p class="lead" style="margin-top:2vh" data-anim>中间形成3—5米缓冲地带，建立离园时的安全拦截。</p><p class="body-zh" style="margin-top:2vh" data-anim>配置入园须知牌、宠物消毒垫、拾便袋与消毒用品；通过身份登记记录宠物与主人信息并形成会员档案。</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw;margin-top:4vh"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/entrance-checkin.webp" alt="宠物乐园入口打卡位" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-island-02.webp" alt="双门入口与宠物岛识别" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:28vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/fence-01.webp" alt="入口围栏与分区护栏" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">入口双门缓冲</div><div>ACT 05 · 配套系统 · 37</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>38 / 50</span></div>
+  </div>
+  <div class="frame grid-2-6-6" style="padding-top:4.5vh"><div><div class="kicker" data-anim>5.2 · Self Wash</div><h2 class="h1-zh" data-anim>自助洗护</h2><h3 class="h2-zh" style="font-size:2.25vw;margin-top:1.5vh" data-anim>游泳与草坪之后直接进入洗护</h3><div style="margin-top:2.2vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">位置</div><div class="v">位于运动区、草坪与停车场之间的必经动线上。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">干湿分离</div><div class="v">湿区洗护与干区吹毛、等候物理分隔。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">环境控制</div><div class="v">户外区域配置遮阳遮雨棚。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">设备</div><div class="v">高低洗护台、吹水机与自助售卖机。</div></div></div></div><div style="display:flex;gap:0;justify-content:center;padding-top:6vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:30vh;height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/dry-wet-storage-01.webp" alt="干湿区域取衣装置" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:30vh;height:50vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/dry-wet-storage-02.webp" alt="干湿区域取衣装置2" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">自助洗护</div><div>ACT 05 · 配套系统 · 38</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light" data-animate="directional">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>39 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:3.5vh"><div class="kicker" data-anim>5.3—5.4 · Retail & Water</div><h2 class="h1-zh" style="font-size:3.8vw" data-anim>宠物用品售卖与补水</h2><div class="grid-2-6-6" style="margin-top:2vh"><div data-anim="left" style="border-left:3px solid currentColor;padding:1.4vh 2vw"><h3 class="h-md">宠物用品售卖</h3><p class="body-zh" style="margin-top:1vh">紧邻洗护出口，配置服饰、项圈与配饰。</p></div><div data-anim="right" style="border-left:3px solid currentColor;padding:1.4vh 2vw"><h3 class="h-md">高低款补水系统</h3><p class="body-zh" style="margin-top:1vh">适配不同体型犬只，分布于主要活动区。</p></div></div><div style="display:flex;justify-content:center;gap:1.1vw;margin-top:2.5vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:34vh;height:34vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-berth-01.webp" alt="宠物服务等候与泊宠" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:34vh;height:34vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-berth-02.webp" alt="泊宠位识别" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:34vh;height:34vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/water-01.webp" alt="宠物补水设施" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:34vh;height:34vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/water-02.webp" alt="宠物饮水台" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">宠物用品售卖与补水</div><div>ACT 05 · 配套系统 · 39</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>40 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:3.5vh"><div class="kicker" data-anim>5.5—5.6 · Public Service</div><h2 class="h1-zh" style="font-size:3.8vw" data-anim>拾便、洗手与公共设施</h2><h3 class="h2-zh" style="font-size:2.05vw;margin-top:1.2vh" data-anim>高频小设施，决定使用感受</h3><p class="body-zh" style="margin-top:1.4vh" data-anim>草坪各区与出口设置封闭垃圾桶及防滑洗手位；导视、休息、泊宠与便民补给共同组成服务系统。</p><div style="display:flex;justify-content:center;gap:1.2vw;margin-top:2.5vh"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:32vh;height:32vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/public-facilities.webp" alt="宠物公园公共设施" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:32vh;height:32vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-convenience.webp" alt="宠物便民装置" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:32vh;height:32vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/public-rest.webp" alt="花园公区休息设施" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">拾便、洗手与公共设施</div><div>ACT 05 · 配套系统 · 40</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>41 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>Material Board · Service</div><h2 class="h1-zh" data-anim>配套设施与导视意向</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/guide-01.webp" alt="配套设施图1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/guide-02.webp" alt="配套设施图2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-berth-02.webp" alt="配套设施图6" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">配套设施与导视意向</div><div>ACT 05 · 配套系统 · 41</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 05 · 配套系统</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>42 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>5.7 · Safety</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">安全与卫生控制</h3><h2 class="h1-zh" data-anim>六项控制，覆盖全园区</h2><div style="margin-top:5vh"><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3vh 3vw;align-items:start"><div class="pillar" data-anim><div class="ic">01</div><div class="t">防逃逸</div><div class="d">入口双门缓冲、分区围栏与缩小栏杆间距。</div></div><div class="pillar" data-anim><div class="ic">02</div><div class="t">可视看护</div><div class="d">咖啡区大玻璃观察面与开放视线。</div></div><div class="pillar" data-anim><div class="ic">03</div><div class="t">地面安全</div><div class="d">防滑、柔软、易清洁并避免渗透留臭。</div></div><div class="pillar" data-anim><div class="ic">04</div><div class="t">干湿分离</div><div class="d">湿区清洗与干区吹毛、等候物理分隔。</div></div><div class="pillar" data-anim><div class="ic">05</div><div class="t">水质卫生</div><div class="d">循环消毒、定时清洁与分点换水。</div></div><div class="pillar" data-anim><div class="ic">06</div><div class="t">身份管理</div><div class="d">宠物与主人登记、会员档案与入园规范。</div></div></div></div></div>
+  <div class="foot"><div class="title">安全与卫生控制</div><div>ACT 05 · 配套系统 · 42</div></div>
+</section>
+
+
+<section class="slide hero light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 06</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>43 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Act 06 · Material</div><h1 class="h-hero" style="font-size:6.2vw" data-anim>环境风格</h1><p class="lead" style="max-width:66vw" data-anim>奶油白、灰绿、自然木与石材，共同建立克制、耐用、可长期运营的法式花园。</p></div>
+  <div class="foot"><div class="title">材质、色彩与环境风格</div><div>ACT 06 · 43</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 06 · 材质风格</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>44 / 50</span></div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:5vh"><div><div class="kicker" data-anim>6.1 · Palette</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">整体色调体系</h3><h2 class="h1-zh" data-anim>奶油白 · 灰绿<br>自然木 · 石材</h2><p class="lead" style="margin-top:3vh" data-anim>色彩关系强调柔和、自然与可长期使用。</p><p class="body-zh" style="margin-top:3vh" data-anim>以奶油白、米白、灰绿与植物绿为主，搭配自然木色、石材色和少量暖棕；避免将宠物空间处理成高饱和彩色游乐场。</p></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2vw;margin-top:7vh"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:44vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/material-colors.webp" alt="灰绿色材料选样" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:44vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-05.webp" alt="石材与拱形开口意向" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">整体色调体系</div><div>ACT 06 · 材质风格 · 44</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 06 · 材质风格</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>45 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>6.2 · Architecture</div><h2 class="h1-zh" style="font-size:4vw" data-anim>建筑与空间语言</h2><div style="margin-top:2.2vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">建筑体量</div><div class="v">低层、小尺度、分散式建筑，通过门廊、坡屋顶与庭院关系形成聚落感。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">开口语言</div><div class="v">使用圆弧门窗、大面积观察窗和室内外连续界面。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">装饰控制</div><div class="v">法式线条、碎花与乡村细节作为点缀，不让装饰压过真实花园生活感。</div></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vw;margin-top:3vh;justify-items:center"><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:27vh;height:27vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/style-05.webp" alt="风格意向5" style="object-fit:contain;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:27vh;height:27vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/play-03.webp" alt="狗狗游玩区3" style="object-fit:contain;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0;justify-self:center"><div class="frame-img" style="width:27vh;height:27vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/building-14.webp" alt="建筑风格意向14" style="object-fit:contain;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">建筑与空间语言</div><div>ACT 06 · 材质风格 · 45</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 06 · 材质风格</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>46 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>6.3 · Materials</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">材质选用原则</h3><h2 class="h1-zh" data-anim>视觉表达必须服从使用性能</h2><div style="margin-top:3vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">墙面</div><div class="v">奶油色、米白乳胶漆，局部碎花壁纸与法式线条；易清洁、耐磨。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">咖啡区地面</div><div class="v">文化石砖与局部做旧木地板；防滑、不渗透、易维护。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">运动区地面</div><div class="v">高品质仿真草坪或橡胶颗粒；软质、防滑、耐户外使用。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">泳池及洗护</div><div class="v">防滑砖、石材、不锈钢与防溅构造；耐水、易消毒、干湿分离。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">家具</div><div class="v">洗白木质框架、圆角家具与局部高脚桌椅；耐抓、减少碰撞。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">公共设施</div><div class="v">石材、金属与木材统一组合；耐候、易识别、便于维护。</div></div></div></div>
+  <div class="foot"><div class="title">材质选用原则</div><div>ACT 06 · 材质风格 · 46</div></div>
+</section>
+
+
+<section class="slide light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>ACT 06 · 材质风格</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>47 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:4vh"><div class="kicker" data-anim>Material Board · Check-in</div><h2 class="h1-zh" data-anim>品牌装置与打卡意向</h2><div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1vw;margin-top:4vh;align-items:start"><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-checkin-01.webp" alt="品牌装置1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-checkin-02.webp" alt="品牌装置2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/pet-checkin-03.webp" alt="品牌装置3" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/checkin-design-01.webp" alt="打卡意向1" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/checkin-design-02.webp" alt="打卡意向2" style="object-fit:cover;object-position:center center;border:0"></div></figure><figure class="tile" data-anim style="min-width:0;margin:0"><div class="frame-img" style="height:51vh;background:transparent;border-radius:0;overflow:hidden"><img src="images/checkin-design-03.webp" alt="打卡意向3" style="object-fit:cover;object-position:center center;border:0"></div></figure></div></div>
+  <div class="foot"><div class="title">品牌装置与打卡意向</div><div>ACT 06 · 材质风格 · 47</div></div>
+</section>
+
+
+<section class="slide dark" data-theme="dark">
+  <div class="chrome">
+    <div class="left"><span>ACT 06 · 材质风格</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>48 / 50</span></div>
+  </div>
+  <div class="frame" style="padding-top:5vh"><div class="kicker" data-anim>6.5 · Difference</div><h3 class="h3-zh" data-anim style="font-size:1.45vw;margin-bottom:1.2vh;opacity:.88">差异化策略</h3><h2 class="h1-zh" data-anim>不是宠物器械集合，而是完整生活场景</h2><div style="margin-top:4vh"><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">从设施到生活方式</div><div class="v">以法式花园、咖啡与陪伴时间构成完整生活场景。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">从混合使用到有序共生</div><div class="v">养宠人与非养宠人分区使用、视觉相连，控制卫生与安全边界。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">从单一游玩到服务闭环</div><div class="v">运动、泳池、洗护、用品售卖、寄养与活动形成连续服务链路。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">从一次到访到持续运营</div><div class="v">日常咖啡、工作日托育、夜间社交、周末派对和品牌活动支撑全时段运营。</div></div><div class="rowline" data-anim style="grid-template-columns:1.15fr 3.4fr;padding:1.15vh 0"><div class="k">从C端消费到B端合作</div><div class="v">小镇街区、广告墙、快闪、市集与发布活动形成持续合作接口。</div></div></div></div>
+  <div class="foot"><div class="title">差异化策略</div><div>ACT 06 · 材质风格 · 48</div></div>
+</section>
+
+
+<section class="slide hero dark" data-theme="dark" data-animate="quote">
+  <div class="chrome">
+    <div class="left"><span>CLOSING</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>49 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh"><div class="kicker" data-anim>Takeaway · 总结</div><blockquote style="font-family:var(--serif-zh);font-weight:700;font-size:4.9vw;line-height:1.28;max-width:82vw"><span data-anim="line" style="display:block">以法式花园为场景，</span><span data-anim="line" style="display:block">以人宠共生为秩序，</span><span data-anim="line" style="display:block">以复合服务为运营闭环。</span></blockquote></div>
+  <div class="foot"><div class="title">策略总结</div><div>CLOSING · 49</div></div>
+</section>
+
+
+<section class="slide hero light" data-theme="light">
+  <div class="chrome">
+    <div class="left"><span>THANK YOU</span><span class="sep"></span><span>UNKNOWN DESIGN</span></div>
+    <div class="right"><span>50 / 50</span></div>
+  </div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh;text-align:center"><div class="kicker" data-anim>UNKNOWN DESIGN · 未知设计</div><h1 class="h-hero" style="font-size:8vw" data-anim>谢谢</h1><p class="lead" data-anim>北滘爱宠乐园规划策略</p><div class="meta-row" style="justify-content:center" data-anim><span>Brand</span><span>·</span><span>Space</span><span>·</span><span>Experience</span></div></div>
+  <div class="foot"><div class="title">感谢观看</div><div>THANK YOU · 50</div></div>
+</section>
+
+</div>
+
+<div id="nav"></div>
+
+<script>
+/* =============== WebGL 双背景 ===============
+   深色页：Holographic Dispersion（全息色散 · 钛金暗流）—— 彩虹微扰、鼠标径向涟漪
+   浅色页：Spiral Vortex（旋转涡流 · 银色珍珠）—— domain-warp 流动、无中心
+   修改风格请参考 references/webgl-backgrounds.md
+*/
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS_DARK = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+  float md=length(p-m);
+  float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+  vec2 p0=p;
+  for(float i=1.0;i<4.0;i++){
+    p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+    p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+  }
+  float r=length(p);float ang=atan(p.y,p.x);
+  vec3 a=vec3(0.12,0.12,0.13);
+  vec3 b=vec3(0.03,0.04,0.05);
+  vec3 c=vec3(1.0,1.0,1.0);
+  vec3 d=vec3(0.1,0.2,0.4);
+  vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+  float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+  col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+  float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+  col+=hi*0.08;
+  vec3 base=vec3(0.05,0.05,0.06);
+  col=mix(base,col,0.85);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const FS_LIGHT = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1,0));
+  float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  mat2 m=mat2(0.80,0.60,-0.60,0.80);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;
+  vec2 md=p-m;float dl=length(md);
+  p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;
+  vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));
+  vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),
+              fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));
+  float f=fbm(p*2.2+r*1.5);
+  vec3 silverDark=vec3(0.86,0.85,0.84);
+  vec3 paper=vec3(0.955,0.945,0.925);
+  vec3 col=mix(silverDark,paper,f);
+  float ph=r.x*2.2+u_time*0.35;
+  col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;
+  col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;
+  float hl=smoothstep(0.48,0.92,f);
+  col+=hl*0.06;
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+  return (tSec)=>{
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,1-mouse.y);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+let drawDark=null, drawLight=null, glRAF=0, glT0=Date.now();
+function startGL(){
+  if(window.__lowPowerMode || glRAF) return;
+  if(!drawDark) drawDark=bootGL('bg-dark',FS_DARK);
+  if(!drawLight) drawLight=bootGL('bg-light',FS_LIGHT);
+  glT0=Date.now();
+  function loop(){
+    if(window.__lowPowerMode){glRAF=0;return;}
+    const t=(Date.now()-glT0)/1000;
+    drawDark(t);drawLight(t);
+    glRAF=requestAnimationFrame(loop);
+  }
+  glRAF=requestAnimationFrame(loop);
+}
+function stopGL(){
+  if(glRAF) cancelAnimationFrame(glRAF);
+  glRAF=0;
+}
+startGL();
+addEventListener('ppt-low-power-change', e=>{e.detail.on ? stopGL() : startGL();});
+
+// =============== 导航（翻页 / 圆点 / 键盘 / 滚轮 / 触屏） ===============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+// 关键：矫正 deck 宽度为 total * 100vw，否则翻页会错位
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  window.__currentSlideIndex = idx;
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  /* 主题切换：优先读 data-theme，其次从 class（light/dark）推断 */
+  const el=slides[idx];
+  const th=el.dataset.theme || (el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));
+  document.body.classList.toggle('light-bg',th==='light');
+  /* 动效：翻页过渡中段触发当前页的入场动画（由 motion-boot 注册） */
+  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+/* =============== ESC 索引视图 =============== */
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(var(--paper-rgb),.6)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)';
+    const wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault();
+    window.__setLowPowerMode(!window.__lowPowerMode);
+    return;
+  }
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
+    if(window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+1);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){
+    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
+      wheelAcc=0;
+    }else{
+      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
+    }
+  }
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+(dx<0?1:-1));
+  }
+},{passive:true});
+
+go(0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+
+<!-- ============ Motion One 动效引擎（本地优先,CDN 兜底） ============
+     加载策略:先 ./assets/motion.min.js(本地,离线可用),失败 fallback 到 jsDelivr CDN
+     加载完成后挂 window.__playSlide / window.__pipeAdvance,
+     导航脚本会在翻页中段调用 __playSlide(idx),键盘/滚轮/触屏会在翻页前调用 __pipeAdvance()
+     双双失败时会兜底把所有 [data-anim] 设为可见,不让动效破坏阅读
+-->
+<script type="module">
+let motion;
+try {
+  motion = await import('./assets/motion.min.js');
+} catch(e1) {
+  try {
+    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+  } catch(e2) {
+    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
+    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
+    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
+  }
+}
+
+if(motion){
+  const { animate, stagger } = motion;
+  document.body.classList.add('motion-ready');
+  const EASE = [.22, 1, .36, 1];
+  const slides = [...document.querySelectorAll('.slide')];
+  let pipeStep = -1;
+  let lastIdx = -1;
+
+  function resetAnims(slide){
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='';
+      el.style.transform='';
+    });
+  }
+
+  function revealStatic(slide){
+    resetAnims(slide);
+    document.getAnimations?.().forEach(a=>a.cancel());
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='1';
+      el.style.transform='none';
+    });
+  }
+
+  function playSlide(i){
+    const slide = slides[i];
+    if(!slide) return;
+    lastIdx = i;
+    const recipe = slide.dataset.animate || (slide.classList.contains('hero') ? 'hero' : 'cascade');
+
+    if(window.__lowPowerMode){
+      revealStatic(slide);
+      return;
+    }
+
+    if(recipe === 'pipeline'){
+      pipeStep = -1;
+      slide.querySelectorAll('[data-anim]').forEach(el=>{
+        el.style.opacity='0.15';
+        el.style.transform='none';
+      });
+      return;
+    }
+
+    resetAnims(slide);
+    const all = [...slide.querySelectorAll('[data-anim]')];
+    if(!all.length) return;
+
+    if(recipe === 'directional'){
+      const lefts  = all.filter(el=>el.dataset.anim==='left');
+      const divs   = all.filter(el=>el.dataset.anim==='divider');
+      const rights = all.filter(el=>el.dataset.anim==='right');
+      const others = all.filter(el=>!['left','right','divider'].includes(el.dataset.anim));
+      if(others.length) animate(others, {opacity:[0,1], y:[12,0]}, {duration:.6, delay:stagger(.1, {start:.15}), easing:EASE});
+      if(lefts.length)  animate(lefts,  {opacity:[0,1], x:[-24,0]}, {duration:.8, delay:.35, easing:EASE});
+      if(divs.length)   animate(divs,   {opacity:[0,.25]},          {duration:.5, delay:.9});
+      if(rights.length) animate(rights, {opacity:[0,1], x:[24,0]},  {duration:.8, delay:1.0, easing:EASE});
+      return;
+    }
+
+    if(recipe === 'quote'){
+      const lines = all.filter(el=>el.dataset.anim==='line');
+      const others = all.filter(el=>el.dataset.anim!=='line');
+      if(others.length) animate(others, {opacity:[0,1], y:[8,0]},    {duration:.6, delay:stagger(.12, {start:.2}), easing:EASE});
+      if(lines.length)  animate(lines,  {opacity:[.35,1], y:[10,0]}, {duration:.8, delay:stagger(.55, {start:.5}), easing:EASE});
+      return;
+    }
+
+    if(recipe === 'hero'){
+      animate(all, {opacity:[0,1], y:[14,0]}, {duration:.9, delay:stagger(.16, {start:.2}), easing:EASE});
+      return;
+    }
+
+    // default: cascade
+    animate(all, {opacity:[0,1], y:[16,0]}, {duration:.75, delay:stagger(.1, {start:.15}), easing:EASE});
+  }
+
+  function pipeAdvance(){
+    if(window.__lowPowerMode) return false;
+    const slide = slides[lastIdx];
+    if(!slide || slide.dataset.animate !== 'pipeline') return false;
+    const steps  = [...slide.querySelectorAll('[data-anim="step"]')];
+    const arrows = [...slide.querySelectorAll('[data-anim="arrow"]')];
+    if(pipeStep >= steps.length - 1) return false;
+    pipeStep++;
+    animate(steps[pipeStep], {opacity:[0.15,1], y:[8,0]}, {duration:.5, easing:EASE});
+    if(pipeStep > 0 && arrows[pipeStep-1]){
+      animate(arrows[pipeStep-1], {opacity:[0.15,.7]}, {duration:.3, delay:.15});
+    }
+    return true;
+  }
+
+  window.__playSlide = playSlide;
+  window.__pipeAdvance = pipeAdvance;
+
+  // 首屏:go(0) 已跑过(同步),没来得及触发动效 → 这里补一下
+  playSlide(0);
+}
+</script>
+</body>
+</html>
+
